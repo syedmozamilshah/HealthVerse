@@ -50,44 +50,129 @@ The system uses conversational multiple-choice questions to gather patient infor
 
 ## 🏗️ System Architecture
 
+### 🔄 Application Flow
 ```mermaid
-graph TD
-    A[👤 Patient Input] --> B[🤖 LangGraph Agent]
-    B --> C[📋 Question Generation Node]
-    C --> D[💬 Follow-up Questions]
-    D --> E[👤 Patient Answers]
-    E --> F[🔍 RAG Query Node]
-    F --> G[📚 Qdrant Vector Database]
-    G --> H[📄 Medical Context Retrieval]
-    H --> I[🎯 Doctor Classification Node]
-    I --> J[📝 Summary Generation Node]
-    J --> K[👨‍⚕️ Specialist Recommendation]
-    J --> L[📋 Medical Summary]
+flowchart TD
+    A[👤 Patient Opens App] --> B[💬 Initial Symptom Input]
+    B --> C[🚀 Frontend Sends Request]
+    C --> D[🔧 Backend API Gateway]
     
-    subgraph "🔄 Agent Workflow"
-        B
-        C
-        F
-        I
-        J
+    D --> E[🤖 LangGraph Agent Initialization]
+    E --> F[📋 Question Generation Node]
+    F --> G[🧠 Gemini AI Processing]
+    G --> H[❓ Dynamic MCQ Creation]
+    H --> I[📤 Questions Sent to Frontend]
+    
+    I --> J[👤 Patient Answers Questions]
+    J --> K[📥 Answers Processed by Backend]
+    K --> L[🔍 RAG Query Node]
+    L --> M[📚 Qdrant Vector Search]
+    M --> N[📄 Medical Context Retrieval]
+    
+    N --> O[🎯 Doctor Classification Node]
+    O --> P[🧠 Gemini AI Analysis]
+    P --> Q[👨‍⚕️ Specialist Selection]
+    
+    Q --> R[📝 Summary Generation Node]
+    R --> S[📋 Medical Report Creation]
+    S --> T[✅ Final Recommendation]
+    T --> U[📱 Results Displayed to Patient]
+    
+    style A fill:#e1f5fe
+    style U fill:#c8e6c9
+    style E fill:#fff3e0
+    style M fill:#f3e5f5
+```
+
+### 🏛️ Technical Architecture
+```mermaid
+graph TB
+    subgraph "🎨 Frontend Layer (Port 3000)"
+        FE[React Application]
+        UI[User Interface]
+        STATE[State Management]
+        FE --> UI
+        UI --> STATE
+    end
+    
+    subgraph "🔗 Communication Layer"
+        PROXY[React Proxy]
+        HTTP[HTTP/REST API]
+        PROXY --> HTTP
+    end
+    
+    subgraph "⚙️ Backend Layer (Port 8001)"
+        API[FastAPI Application]
+        ROUTES[API Routes]
+        AGENT[LangGraph Agent]
+        API --> ROUTES
+        ROUTES --> AGENT
+    end
+    
+    subgraph "🤖 AI Processing Layer"
+        GEMINI[Google Gemini AI]
+        TOOLS[Agent Tools]
+        NODES[Agent Nodes]
+        AGENT --> TOOLS
+        TOOLS --> GEMINI
+        NODES --> GEMINI
     end
     
     subgraph "💾 Data Layer"
-        G
-        M[🔑 Medical Cases]
-        N[📊 Vector Embeddings]
+        QDRANT[Qdrant Vector DB]
+        VECTORS[Medical Embeddings]
+        CASES[Medical Cases]
+        QDRANT --> VECTORS
+        VECTORS --> CASES
     end
     
-    subgraph "🎨 Frontend Layer"
-        O[⚛️ React UI]
-        P[🔧 State Management]
-        Q[📱 Responsive Design]
-    end
+    STATE -.->|Proxy Request| PROXY
+    HTTP --> API
+    TOOLS --> QDRANT
+    GEMINI -.->|RAG Query| QDRANT
     
-    K --> O
-    L --> O
-    O --> P
-    P --> Q
+    style FE fill:#e3f2fd
+    style API fill:#fff3e0
+    style GEMINI fill:#f3e5f5
+    style QDRANT fill:#e8f5e8
+```
+
+### 🔄 Agent Workflow Detail
+```mermaid
+stateDiagram-v2
+    [*] --> QuestionGeneration: Patient Input
+    
+    QuestionGeneration --> WaitingForAnswers: Questions Generated
+    WaitingForAnswers --> ProcessingAnswers: Answers Received
+    
+    ProcessingAnswers --> RAGQuery: Enough Info?
+    ProcessingAnswers --> QuestionGeneration: Need More Info
+    
+    RAGQuery --> VectorSearch: Query Medical Database
+    VectorSearch --> ContextRetrieval: Similar Cases Found
+    
+    ContextRetrieval --> DoctorClassification: Medical Context Retrieved
+    DoctorClassification --> SummaryGeneration: Doctor Type Determined
+    
+    SummaryGeneration --> [*]: Final Recommendation
+    
+    note right of QuestionGeneration
+        - Dynamic MCQ creation
+        - Context-aware questions
+        - Medical terminology simplified
+    end note
+    
+    note right of RAGQuery
+        - Vector similarity search
+        - Medical case matching
+        - Evidence-based retrieval
+    end note
+    
+    note right of DoctorClassification
+        - 4 specialist types
+        - Confidence scoring
+        - Reasoning generation
+    end note
 ```
 
 ## 🚀 Quick Start
@@ -136,23 +221,34 @@ QDRANT_CLUSTER_ID=your_cluster_id
 QDRANT_ENDPOINT=https://your-cluster.qdrant.tech
 QDRANT_COLLECTION_NAME=healthverse_cases
 
-# System Configuration
-HOST=0.0.0.0
-PORT=8000
-DEBUG=False
-ALLOWED_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
-ALLOWED_DOCTORS=["Ophthalmologist","Optometrist","Optician","Ocular Surgeon"]
+# FastAPI Configuration
+API_HOST=0.0.0.0
+API_PORT=8001
+API_RELOAD=false
+API_LOG_LEVEL=info
+
+# CORS Configuration (configured in code)
+# ALLOWED_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+# ALLOWED_DOCTORS=["Ophthalmologist","Optometrist","Optician","Ocular Surgeon"]
 ```
 
 ### 4. Start Backend Server
 
 ```bash
-# Using the Windows startup script (recommended)
-python scripts/start_backend_windows.py
+# Using the comprehensive startup script (recommended)
+python run_backend.py
 
-# Or directly with uvicorn
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+# Or directly with uvicorn (if needed)
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8001 --reload
 ```
+
+**Note**: The startup script includes:
+- ✅ Python version compatibility check
+- ✅ Environment validation
+- ✅ Dependency verification
+- ✅ Service initialization (Qdrant, Agent, LLM)
+- ✅ Comprehensive logging
+- ✅ Automatic error handling
 
 ### 5. Frontend Setup
 
@@ -170,8 +266,29 @@ npm start
 ### 6. Access Application
 
 - **Frontend UI**: http://localhost:3000
-- **Backend API**: http://localhost:8000  
-- **API Documentation**: http://localhost:8000/docs
+- **Backend API**: http://localhost:8001  
+- **API Documentation**: http://localhost:8001/docs
+- **Health Check**: http://localhost:8001/health
+
+### 🔧 Troubleshooting
+
+#### Common Issues:
+
+1. **Port 8001 already in use**:
+   ```bash
+   # Check what's using the port
+   netstat -ano | findstr :8001
+   # Kill the process or change API_PORT in .env
+   ```
+
+2. **Frontend proxy errors**:
+   - Ensure backend is running on port 8001
+   - Check `package.json` proxy setting: `"proxy": "http://localhost:8001"`
+
+3. **Environment variables not loaded**:
+   - Verify `.env` file exists in backend directory
+   - Check for correct API key formats
+   - Restart backend after .env changes
 
 ## 📚 API Documentation
 

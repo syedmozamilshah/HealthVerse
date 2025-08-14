@@ -3,19 +3,25 @@ import axios from 'axios';
 import './App.css';
 
 const App = () => {
-  const [step, setStep] = useState('initial'); // 'initial', 'questions', 'results'
+  const [step, setStep] = useState('initial'); // 'initial', 'iterative', 'results'
   const [initialCondition, setInitialCondition] = useState('');
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState([]);
-  const [customAnswers, setCustomAnswers] = useState({});
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  
+  // Smart iterative workflow states
+  const [sessionId, setSessionId] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [confidenceScore, setConfidenceScore] = useState(null);
+  const [currentAnswer, setCurrentAnswer] = useState('');
+  const [currentCustomAnswer, setCurrentCustomAnswer] = useState('');
 
   // API base URL
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-  const handleInitialSubmit = async (e) => {
+  // Start smart iterative session
+  const startIterativeSession = async (e) => {
     e.preventDefault();
     if (!initialCondition.trim()) {
       setError('Please describe your eye condition');
@@ -26,69 +32,25 @@ const App = () => {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/generate-questions`, {
+      const response = await axios.post(`${API_BASE_URL}/api/iterative/start`, {
         condition: initialCondition
       });
 
-      setQuestions(response.data.questions);
-      setAnswers(new Array(response.data.questions.length).fill(null));
-      setStep('questions');
+      setSessionId(response.data.session_id);
+      setCurrentQuestion(response.data.first_question);
+      setConfidenceScore(response.data.confidence_score);
+      setConversationHistory([]);
+      setStep('iterative');
     } catch (err) {
-      setError(`Failed to generate questions: ${err.response?.data?.detail || err.message}`);
+      setError(`Failed to start session: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAnswerChange = (questionIndex, selectedOption) => {
-    const newAnswers = [...answers];
-    newAnswers[questionIndex] = {
-      question_index: questionIndex,
-      selected_option: selectedOption,
-      custom_answer: null
-    };
-    setAnswers(newAnswers);
-
-    // Clear custom answer if not "Other"
-    const question = questions[questionIndex];
-    const selectedOptionObj = question.options.find(opt => opt.text === selectedOption);
-    if (!selectedOptionObj?.is_other) {
-      const newCustomAnswers = { ...customAnswers };
-      delete newCustomAnswers[questionIndex];
-      setCustomAnswers(newCustomAnswers);
-    }
-  };
-
-  const handleCustomAnswerChange = (questionIndex, customAnswer) => {
-    const newCustomAnswers = { ...customAnswers };
-    newCustomAnswers[questionIndex] = customAnswer;
-    setCustomAnswers(newCustomAnswers);
-
-    // Update the answer with custom response but keep selected_option for "Other"
-    const newAnswers = [...answers];
-    if (newAnswers[questionIndex]) {
-      newAnswers[questionIndex] = {
-        ...newAnswers[questionIndex],
-        custom_answer: customAnswer
-      };
-      setAnswers(newAnswers);
-    }
-  };
-
-  const handleQuestionsSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validate all questions are answered
-    const unansweredQuestions = [];
-    for (let i = 0; i < questions.length; i++) {
-      const answer = answers[i];
-      if (!answer || (!answer.selected_option && !answer.custom_answer)) {
-        unansweredQuestions.push(i + 1);
-      }
-    }
-
-    if (unansweredQuestions.length > 0) {
-      setError(`Please answer question(s): ${unansweredQuestions.join(', ')}`);
+  const handleIterativeAnswer = async () => {
+    if (!currentAnswer.trim() && !currentCustomAnswer.trim()) {
+      setError('Please provide an answer');
       return;
     }
 
@@ -96,22 +58,32 @@ const App = () => {
     setError(null);
 
     try {
-      // Prepare answers for API
-      const formattedAnswers = answers.map((answer, index) => ({
-        question_index: index,
-        selected_option: answer.selected_option,
-        custom_answer: customAnswers[index] || answer.custom_answer
-      }));
-
-      const response = await axios.post(`${API_BASE_URL}/api/process-answers`, {
-        initial_condition: initialCondition,
-        answers: formattedAnswers
+      const answerText = currentAnswer === 'Other' ? currentCustomAnswer : currentAnswer;
+      
+      const response = await axios.post(`${API_BASE_URL}/api/iterative/next`, {
+        session_id: sessionId,
+        answer: answerText
       });
 
-      setResults(response.data);
-      setStep('results');
+      // Update conversation history
+      setConversationHistory(response.data.conversation_history);
+      setConfidenceScore(response.data.confidence_score);
+
+      if (response.data.is_complete) {
+        // Session is complete, show results
+        setResults({
+          doctor: response.data.doctor_recommendation,
+          summary_for_doctor: response.data.summary_for_doctor
+        });
+        setStep('results');
+      } else {
+        // Continue with next question
+        setCurrentQuestion(response.data.question);
+        setCurrentAnswer('');
+        setCurrentCustomAnswer('');
+      }
     } catch (err) {
-      setError(`Failed to process answers: ${err.response?.data?.detail || err.message}`);
+      setError(`Failed to process answer: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -120,21 +92,26 @@ const App = () => {
   const resetForm = () => {
     setStep('initial');
     setInitialCondition('');
-    setQuestions([]);
-    setAnswers([]);
-    setCustomAnswers({});
     setResults(null);
     setError(null);
+    
+    // Reset iterative states
+    setSessionId(null);
+    setCurrentQuestion(null);
+    setConversationHistory([]);
+    setConfidenceScore(null);
+    setCurrentAnswer('');
+    setCurrentCustomAnswer('');
   };
 
   const renderInitialForm = () => (
     <div className="form-container">
-      <h1>Ophthalmology Assistant</h1>
+      <h1>Smart Ophthalmology Assistant</h1>
       <p className="subtitle">
-        Describe your eye-related symptoms or concerns, and I'll help you find the right specialist.
+        Describe your eye-related symptoms and I'll ask targeted questions to help find the right specialist.
       </p>
       
-      <form onSubmit={handleInitialSubmit}>
+      <form onSubmit={startIterativeSession}>
         <div className="form-group">
           <label htmlFor="condition">
             What eye condition or symptoms are you experiencing?
@@ -150,73 +127,119 @@ const App = () => {
         </div>
         
         <button type="submit" disabled={loading || !initialCondition.trim()}>
-          {loading ? 'Generating Questions...' : 'Continue'}
+          {loading ? 'Starting Smart Consultation...' : 'Start Smart Consultation'}
         </button>
       </form>
     </div>
   );
 
-  const renderQuestions = () => (
+  const renderIterativeQuestion = () => (
     <div className="form-container">
-      <h2>Follow-up Questions</h2>
-      <p className="subtitle">
-        Please answer these questions to help us recommend the most appropriate specialist.
-      </p>
+      <h2>Smart Consultation</h2>
       
-      <form onSubmit={handleQuestionsSubmit}>
-        {questions.map((question, questionIndex) => (
-          <div key={questionIndex} className="question-group">
-            <h3 className="question-title">
-              {questionIndex + 1}. {question.question}
-            </h3>
-            
-            <div className="options-group">
-              {question.options.map((option, optionIndex) => (
-                <div key={optionIndex}>
-                  <label className="option-label">
-                    <input
-                      type="radio"
-                      name={`question_${questionIndex}`}
-                      value={option.text}
-                      checked={answers[questionIndex]?.selected_option === option.text}
-                      onChange={(e) => handleAnswerChange(questionIndex, e.target.value)}
+      {/* Confidence Score Display */}
+      {confidenceScore && (
+        <div className="confidence-panel">
+          <h4>AI Diagnostic Confidence</h4>
+          <div className="confidence-bar">
+            <div 
+              className="confidence-fill" 
+              style={{ width: `${(confidenceScore.overall_confidence * 100)}%` }}
+            ></div>
+          </div>
+          <p>{Math.round(confidenceScore.overall_confidence * 100)}% confident in recommendation</p>
+          <div className="leading-doctor">
+            <small>Current leading recommendation: <strong>{confidenceScore.doctor_confidence ? 
+              Object.entries(confidenceScore.doctor_confidence)
+                .sort(([,a], [,b]) => b - a)[0][0] : 'Calculating...'
+            }</strong></small>
+          </div>
+        </div>
+      )}
+      
+      {/* Conversation History */}
+      {conversationHistory.length > 0 && (
+        <div className="conversation-history">
+          <h4>Previous Questions</h4>
+          <div className="history-list">
+            {conversationHistory.map((entry, index) => (
+              <div key={index} className="history-entry">
+                <div className="history-question">Q{index + 1}: {entry.question}</div>
+                <div className="history-answer">A{index + 1}: {entry.answer}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Current Question */}
+      {currentQuestion && (
+        <div className="current-question">
+          <h3 className="question-title">
+            Question {conversationHistory.length + 1}: {currentQuestion.question}
+          </h3>
+          
+          <div className="options-group">
+            {currentQuestion.options.map((option, index) => (
+              <div key={index}>
+                <label className="option-label">
+                  <input
+                    type="radio"
+                    name="current_answer"
+                    value={option.text}
+                    checked={currentAnswer === option.text}
+                    onChange={(e) => {
+                      setCurrentAnswer(e.target.value);
+                      if (!option.is_other) {
+                        setCurrentCustomAnswer('');
+                      }
+                    }}
+                    disabled={loading}
+                  />
+                  
+                  <span className="option-text">{option.text}</span>
+                </label>
+                
+                {option.is_other && currentAnswer === option.text && (
+                  <div className="custom-input-container">
+                    <textarea
+                      placeholder="Please specify..."
+                      value={currentCustomAnswer}
+                      onChange={(e) => setCurrentCustomAnswer(e.target.value)}
+                      rows={2}
                       disabled={loading}
                     />
-                    <span className="option-text">{option.text}</span>
-                  </label>
-                  
-                  {option.is_other && answers[questionIndex]?.selected_option === option.text && (
-                    <div className="custom-input-container">
-                      <textarea
-                        placeholder="Please specify..."
-                        value={customAnswers[questionIndex] || ''}
-                        onChange={(e) => handleCustomAnswerChange(questionIndex, e.target.value)}
-                        rows={2}
-                        disabled={loading}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-        
-        <div className="button-group">
-          <button type="button" onClick={resetForm} disabled={loading}>
-            Start Over
-          </button>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Processing...' : 'Get Recommendation'}
-          </button>
+          
+          <div className="button-group">
+            <button 
+              type="button" 
+              onClick={resetForm} 
+              disabled={loading}
+              className="secondary-button"
+            >
+              Start Over
+            </button>
+            <button 
+              onClick={handleIterativeAnswer} 
+              disabled={loading || (!currentAnswer.trim() && !currentCustomAnswer.trim())}
+              className="primary-button"
+            >
+              {loading ? 'Processing...' : 'Submit Answer'}
+            </button>
+          </div>
         </div>
-      </form>
+      )}
     </div>
   );
 
   const renderResults = () => (
     <div className="results-container">
-      <h2>Recommendation</h2>
+      <h2>Specialist Recommendation</h2>
       
       <div className="doctor-recommendation">
         <h3>Recommended Specialist</h3>
@@ -270,7 +293,7 @@ const App = () => {
         )}
         
         {step === 'initial' && renderInitialForm()}
-        {step === 'questions' && renderQuestions()}
+        {step === 'iterative' && renderIterativeQuestion()}
         {step === 'results' && renderResults()}
       </div>
       

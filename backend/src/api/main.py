@@ -7,14 +7,14 @@ from contextlib import asynccontextmanager
 
 from src.core.config import config
 from src.models.models import (
-    InitialConditionRequest, 
-    QuestionsResponse, 
-    AnswersRequest, 
-    FinalResponse,
-    UserAnswer
+    SessionStartRequest,
+    SessionStartResponse,
+    NextQuestionRequest,
+    NextQuestionResponse
 )
 from src.core.agent import ophthalmology_agent
 from src.services.qdrant_service import qdrant_service
+from src.services.session_manager import session_manager
 
 # Configure logging
 logging.basicConfig(
@@ -84,65 +84,7 @@ async def health_check():
         }
     }
 
-@app.post("/api/generate-questions", response_model=QuestionsResponse)
-async def generate_questions(request: InitialConditionRequest):
-    """
-    Generate follow-up questions based on initial condition
-    
-    This endpoint takes the user's initial eye-related condition and generates
-    3-5 follow-up questions with dynamic answer options using the LLM.
-    """
-    try:
-        logger.info(f"Generating questions for condition: {request.condition}")
-        
-        # Generate questions using the agent
-        questions = await ophthalmology_agent.generate_questions(request.condition)
-        
-        response = QuestionsResponse(questions=questions)
-        logger.info(f"Successfully generated {len(questions)} questions")
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error generating questions: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to generate questions: {str(e)}"
-        )
-
-@app.post("/api/process-answers", response_model=FinalResponse)
-async def process_answers(request: AnswersRequest):
-    """
-    Process user answers and generate final recommendation
-    
-    This endpoint processes the user's answers to follow-up questions,
-    uses RAG to retrieve relevant medical context, identifies the most
-    appropriate doctor type, and generates a medical summary.
-    """
-    try:
-        logger.info(f"Processing answers for condition: {request.initial_condition}")
-        
-        # Process the complete flow using the agent
-        final_state = await ophthalmology_agent.process_complete_flow(
-            initial_condition=request.initial_condition,
-            answers=request.answers
-        )
-        
-        # Create the final response
-        response = FinalResponse(
-            doctor=final_state.doctor_recommendation,
-            summary_for_doctor=final_state.summary
-        )
-        
-        logger.info(f"Successfully processed answers, recommended: {final_state.doctor_recommendation.doctor_type}")
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error processing answers: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process answers: {str(e)}"
-        )
+# Batch workflow endpoints removed - only iterative workflow supported
 
 @app.get("/api/allowed-doctors")
 async def get_allowed_doctors():
@@ -156,6 +98,92 @@ async def get_allowed_doctors():
             "Ocular Surgeon": "Specialist in surgical procedures for eye conditions"
         }
     }
+
+# Iterative Questioning Endpoints
+
+@app.post("/api/iterative/start", response_model=SessionStartResponse)
+async def start_iterative_session(request: SessionStartRequest):
+    """
+    Start a new iterative questioning session
+    
+    This endpoint begins an iterative conversation where questions are asked
+    one at a time based on the user's previous answers. The AI dynamically
+    determines when enough information has been gathered.
+    """
+    try:
+        logger.info(f"Starting iterative session for condition: {request.condition}")
+        
+        response = await session_manager.start_session(request)
+        
+        logger.info(f"Started session {response.session_id} with confidence {response.confidence_score.overall_confidence:.2f}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error starting iterative session: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start session: {str(e)}"
+        )
+
+@app.post("/api/iterative/next", response_model=NextQuestionResponse)
+async def get_next_question(request: NextQuestionRequest):
+    """
+    Process user answer and get next question or final recommendation
+    
+    This endpoint processes the user's answer to the previous question,
+    updates confidence scores, and either provides the next question
+    or finalizes the session with a doctor recommendation.
+    """
+    try:
+        logger.info(f"Processing answer for session {request.session_id}")
+        
+        response = await session_manager.process_answer_and_get_next_question(request)
+        
+        if response.is_complete:
+            logger.info(f"Session {request.session_id} completed with recommendation: {response.doctor_recommendation.doctor_type}")
+        else:
+            logger.info(f"Generated next question for session {request.session_id}")
+            
+        return response
+        
+    except ValueError as e:
+        logger.error(f"Session not found: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error processing answer: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process answer: {str(e)}"
+        )
+
+@app.get("/api/iterative/session/{session_id}")
+async def get_session_status(session_id: str):
+    """
+    Get current session status and conversation history
+    
+    This endpoint allows retrieving the current state of a session,
+    including conversation history and confidence scores.
+    """
+    try:
+        session = await session_manager.get_session(session_id)
+        
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+            
+        return {
+            "session_id": session.session_id,
+            "initial_condition": session.initial_condition,
+            "conversation_history": session.conversation_history,
+            "confidence_score": session.confidence_score,
+            "current_leading_doctor": session.current_leading_doctor,
+            "is_complete": session.is_complete,
+            "created_at": session.created_at,
+            "updated_at": session.updated_at
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving session {session_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve session: {str(e)}")
 
 @app.post("/api/add-knowledge")
 async def add_knowledge_document(content: str, metadata: dict = None):

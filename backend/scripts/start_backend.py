@@ -80,46 +80,46 @@ def check_python_version():
     logger.info(f"Python version: {python_version.major}.{python_version.minor}.{python_version.micro}")
     
     if python_version < (3, 8):
-        logger.error("❌ Python 3.8+ required")
+        logger.error("[ERROR] Python 3.8+ required")
         sys.exit(1)
     
-    logger.info("✅ Python version compatible")
+    logger.info("[OK] Python version compatible")
 
 def check_environment():
     """Check environment setup"""
     logger = logging.getLogger("startup.environment")
     
-    logger.info("🔍 Checking environment setup...")
+    logger.info("[INFO] Checking environment setup...")
     
     # Check .env file
     env_file = backend_dir / ".env"
     if env_file.exists():
-        logger.info("✅ .env file found")
+        logger.info("[OK] .env file found")
     else:
-        logger.warning("⚠️  .env file not found - using environment variables")
+        logger.warning("[WARN] .env file not found - using environment variables")
     
     # Check required directories
     required_dirs = ["src", "logs", "tests", "scripts"]
     for dir_name in required_dirs:
         dir_path = backend_dir / dir_name
         if dir_path.exists():
-            logger.info(f"✅ Directory found: {dir_name}/")
+            logger.info(f"[OK] Directory found: {dir_name}/")
         else:
-            logger.error(f"❌ Missing directory: {dir_name}/")
+            logger.error(f"[ERROR] Missing directory: {dir_name}/")
             sys.exit(1)
 
 def validate_configuration():
     """Validate configuration settings"""
     logger = logging.getLogger("startup.config")
     
-    logger.info("🔧 Validating configuration...")
+    logger.info("[INFO] Validating configuration...")
     
     try:
         from src.core.config import config
         
         # Test configuration validation
         config.validate()
-        logger.info("✅ Configuration validation passed")
+        logger.info("[OK] Configuration validation passed")
         
         # Log key settings (without sensitive data)
         logger.info(f"  - Host: {config.HOST}")
@@ -133,24 +133,24 @@ def validate_configuration():
         if config.GEMINI_API_KEY:
             logger.info(f"  - Gemini API Key: ****{config.GEMINI_API_KEY[-4:]}")
         else:
-            logger.error("❌ Gemini API Key not configured")
+            logger.error("[ERROR] Gemini API Key not configured")
             
         if config.QDRANT_CLUSTER_KEY:
             logger.info(f"  - Qdrant Cluster Key: ****{config.QDRANT_CLUSTER_KEY[-4:]}")
         else:
-            logger.error("❌ Qdrant Cluster Key not configured")
+            logger.error("[ERROR] Qdrant Cluster Key not configured")
             
         return config
         
     except Exception as e:
-        logger.error(f"❌ Configuration validation failed: {str(e)}")
+        logger.error(f"[ERROR] Configuration validation failed: {str(e)}")
         sys.exit(1)
 
 def check_dependencies():
     """Check required dependencies"""
     logger = logging.getLogger("startup.dependencies")
     
-    logger.info("📦 Checking dependencies...")
+    logger.info("[INFO] Checking dependencies...")
     
     required_packages = [
         ("fastapi", "fastapi"),
@@ -174,59 +174,59 @@ def check_dependencies():
             missing_packages.append(package_name)
     
     if missing_packages:
-        logger.error("❌ Missing dependencies. Install with:")
+        logger.error("[ERROR] Missing dependencies. Install with:")
         logger.error(f"   pip install {' '.join(missing_packages)}")
         sys.exit(1)
     
-    logger.info("✅ All dependencies satisfied")
+    logger.info("[OK] All dependencies satisfied")
 
 async def initialize_services(config):
     """Initialize all services"""
     logger = logging.getLogger("startup.services")
     
-    logger.info("🚀 Initializing services...")
+    logger.info("[INFO] Initializing services...")
     
     # Initialize Qdrant service
-    logger.info("  📊 Initializing Qdrant service...")
+    logger.info("  [INFO] Initializing Qdrant service...")
     try:
         from src.services.qdrant_service import qdrant_service
         await qdrant_service.initialize_collection()
-        logger.info("  ✅ Qdrant service initialized")
+        logger.info("  [OK] Qdrant service initialized")
     except Exception as e:
-        logger.error(f"  ❌ Qdrant initialization failed: {str(e)}")
-        logger.warning("  ⚠️  Continuing without Qdrant (RAG features disabled)")
+        logger.error(f"  [ERROR] Qdrant initialization failed: {str(e)}")
+        logger.warning("  [WARN] Continuing without Qdrant (RAG features disabled)")
     
     # Initialize agent
-    logger.info("  🤖 Initializing agent...")
+    logger.info("  [INFO] Initializing agent...")
     try:
         from src.core.agent import ophthalmology_agent
-        logger.info(f"  ✅ Agent initialized with {len(ophthalmology_agent.tools)} tools")
+        logger.info(f"  [OK] Agent initialized with {len(ophthalmology_agent.tools)} tools")
         
         # Check BindWithLLM status
         if hasattr(ophthalmology_agent, 'llm_with_tools') and ophthalmology_agent.llm_with_tools:
-            logger.info("  ✅ BindWithLLM integration enabled")
+            logger.info("  [OK] BindWithLLM integration enabled")
         else:
-            logger.info("  ⚠️  Using direct tool access (BindWithLLM not available)")
+            logger.info("  [WARN] Using direct tool access (BindWithLLM not available)")
             
     except Exception as e:
-        logger.error(f"  ❌ Agent initialization failed: {str(e)}")
+        logger.error(f"  [ERROR] Agent initialization failed: {str(e)}")
         sys.exit(1)
     
     # Test LLM connection
-    logger.info("  🧠 Testing LLM connection...")
+    logger.info("  [INFO] Testing LLM connection...")
     try:
         from src.tools.agent_tools import llm
         test_response = llm.invoke("Hello, this is a connection test.")
-        logger.info("  ✅ LLM connection successful")
+        logger.info("  [OK] LLM connection successful")
     except Exception as e:
-        logger.error(f"  ❌ LLM connection failed: {str(e)}")
+        logger.error(f"  [ERROR] LLM connection failed: {str(e)}")
         sys.exit(1)
 
 def run_startup_tests():
     """Run quick startup validation tests"""
     logger = logging.getLogger("startup.tests")
     
-    logger.info("🧪 Running startup validation tests...")
+    logger.info("[INFO] Running startup validation tests...")
     
     try:
         # Test basic imports
@@ -240,38 +240,30 @@ def run_startup_tests():
             options=[test_option]
         )
         
-        logger.info("✅ Model validation passed")
+        logger.info("[OK] Model validation passed")
         
         # Test configuration access
         allowed_doctors = config.ALLOWED_DOCTORS
-        logger.info(f"✅ Configuration access passed ({len(allowed_doctors)} doctor types)")
+        logger.info(f"[OK] Configuration access passed ({len(allowed_doctors)} doctor types)")
         
     except Exception as e:
-        logger.error(f"❌ Startup tests failed: {str(e)}")
+        logger.error(f"[ERROR] Startup tests failed: {str(e)}")
         sys.exit(1)
 
 def start_server(config):
     """Start the FastAPI server"""
     logger = logging.getLogger("startup.server")
     
-    logger.info("🌐 Starting FastAPI server...")
+    logger.info("[INFO] Starting FastAPI server...")
     
     try:
         import uvicorn
+        import subprocess
+        import sys
         
-        # Server configuration
-        server_config = {
-            "app": "src.api.main:app",
-            "host": config.HOST,
-            "port": config.PORT,
-            "reload": config.DEBUG,
-            "log_level": "info" if not config.DEBUG else "debug",
-            "access_log": True
-        }
-        
-        logger.info(f"  🔗 Server URL: http://{config.HOST}:{config.PORT}")
-        logger.info(f"  📖 API Docs: http://{config.HOST}:{config.PORT}/docs")
-        logger.info(f"  🔄 Reload: {config.DEBUG}")
+        logger.info(f"  [INFO] Server URL: http://{config.HOST}:{config.PORT}")
+        logger.info(f"  [INFO] API Docs: http://{config.HOST}:{config.PORT}/docs")
+        logger.info(f"  [INFO] Reload: {config.DEBUG}")
         
         print("\n" + "="*70)
         print("🎉 BACKEND STARTUP COMPLETE!")
@@ -279,13 +271,25 @@ def start_server(config):
         print(f"📖 API Documentation: http://{config.HOST}:{config.PORT}/docs")
         print("="*70 + "\n")
         
-        # Start the server
-        uvicorn.run(**server_config)
+        # Start the server using subprocess to avoid event loop conflicts
+        cmd = [
+            sys.executable, "-m", "uvicorn", 
+            "src.api.main:app",
+            "--host", config.HOST,
+            "--port", str(config.PORT),
+            "--log-level", "info" if not config.DEBUG else "debug"
+        ]
+        
+        if config.DEBUG:
+            cmd.append("--reload")
+        
+        # Run uvicorn as subprocess
+        subprocess.run(cmd, check=True)
         
     except KeyboardInterrupt:
-        logger.info("🛑 Server shutdown requested")
+        logger.info("[INFO] Server shutdown requested")
     except Exception as e:
-        logger.error(f"❌ Server startup failed: {str(e)}")
+        logger.error(f"[ERROR] Server startup failed: {str(e)}")
         sys.exit(1)
 
 async def main():
@@ -297,7 +301,7 @@ async def main():
     
     try:
         print_banner()
-        logger.info("🚀 Starting Ophthalmology Agent Backend...")
+        logger.info("[INFO] Starting Ophthalmology Agent Backend...")
         
         # Step-by-step initialization
         check_python_version()
@@ -308,16 +312,16 @@ async def main():
         run_startup_tests()
         
         startup_time = time.time() - start_time
-        logger.info(f"✅ Startup completed in {startup_time:.2f} seconds")
+        logger.info(f"[OK] Startup completed in {startup_time:.2f} seconds")
         
         # Start the server
         start_server(config)
         
     except KeyboardInterrupt:
-        logger.info("🛑 Startup interrupted by user")
+        logger.info("[INFO] Startup interrupted by user")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"❌ Startup failed: {str(e)}")
+        logger.error(f"[ERROR] Startup failed: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
