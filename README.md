@@ -77,11 +77,6 @@ flowchart TD
     R --> S[📋 Medical Report Creation]
     S --> T[✅ Final Recommendation]
     T --> U[📱 Results Displayed to Patient]
-    
-    style A fill:#e1f5fe
-    style U fill:#c8e6c9
-    style E fill:#fff3e0
-    style M fill:#f3e5f5
 ```
 
 ### 🏛️ Technical Architecture
@@ -130,11 +125,6 @@ graph TB
     HTTP --> API
     TOOLS --> QDRANT
     GEMINI -.->|RAG Query| QDRANT
-    
-    style FE fill:#e3f2fd
-    style API fill:#fff3e0
-    style GEMINI fill:#f3e5f5
-    style QDRANT fill:#e8f5e8
 ```
 
 ### 🔄 Agent Workflow Detail
