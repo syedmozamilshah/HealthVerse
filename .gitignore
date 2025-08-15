@@ -243,7 +243,8 @@ dist
 
 # Gatsby files
 .cache/
-public
+# Note: Don't ignore frontend/public - it's needed for React
+# Only ignore Gatsby's generated public directory if using Gatsby
 
 # Storybook build outputs
 .out
@@ -341,12 +342,18 @@ secrets.json
 *.index
 embeddings_cache/
 
-# Machine Learning models
+# Machine Learning models (only ignore actual model files, not source code)
 *.model
 *.pkl
 *.pickle
-models/
+*.h5
+*.bin
+*.safetensors
+*.onnx
+# Model checkpoint directories (but not source code directories)
 checkpoints/
+model_weights/
+saved_models/
 
 # Documentation builds
 docs/build/
