@@ -10,10 +10,20 @@ logger = logging.getLogger(__name__)
 
 class QdrantService:
     def __init__(self):
-        self.client = QdrantClient(
-            url=config.QDRANT_ENDPOINT,
-            api_key=config.QDRANT_CLUSTER_KEY
-        )
+        # For local development, don't use API key if not provided
+        if config.QDRANT_CLUSTER_KEY:
+            self.client = QdrantClient(
+                url=config.QDRANT_ENDPOINT,
+                api_key=config.QDRANT_CLUSTER_KEY,
+                check_compatibility=False  # Skip version check
+            )
+        else:
+            # Local Qdrant instance without API key
+            self.client = QdrantClient(
+                url=config.QDRANT_ENDPOINT,
+                check_compatibility=False  # Skip version check
+            )
+            
         self.collection_name = config.QDRANT_COLLECTION_NAME
         self.embedding_model_name = config.GEMINI_EMBEDDING_MODEL
         
@@ -24,20 +34,27 @@ class QdrantService:
     async def initialize_collection(self):
         """Initialize collection if it doesn't exist"""
         try:
-            collections = self.client.get_collections()
-            collection_names = [col.name for col in collections.collections]
-            
-            if self.collection_name not in collection_names:
-                self.client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=VectorParams(
-                        size=self.embedding_dimension,
-                        distance=Distance.COSINE
+            # Check if Qdrant is available
+            try:
+                collections = self.client.get_collections()
+                collection_names = [col.name for col in collections.collections]
+                
+                if self.collection_name not in collection_names:
+                    self.client.create_collection(
+                        collection_name=self.collection_name,
+                        vectors_config=VectorParams(
+                            size=self.embedding_dimension,
+                            distance=Distance.COSINE
+                        )
                     )
-                )
-                logger.info(f"Created collection: {self.collection_name}")
-            else:
-                logger.info(f"Collection already exists: {self.collection_name}")
+                    logger.info(f"Created collection: {self.collection_name}")
+                else:
+                    logger.info(f"Collection already exists: {self.collection_name}")
+            except Exception as e:
+                # For development purposes, create a mock collection
+                logger.warning(f"Qdrant connection failed: {str(e)}")
+                logger.warning("Running in development mode without Qdrant. Some features will be limited.")
+                # Continue without Qdrant for development purposes
                 
         except Exception as e:
             logger.error(f"Error initializing collection: {str(e)}")

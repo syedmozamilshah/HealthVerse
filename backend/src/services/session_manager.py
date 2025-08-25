@@ -30,7 +30,7 @@ class SessionManager:
         self.high_confidence_threshold = 0.9   # High confidence for early completion
         self.satisfaction_threshold = 0.8      # Agent satisfaction threshold
         self.max_questions = 8  # Safety limit to prevent endless questioning
-        self.min_questions = 2  # Minimum questions before allowing completion
+        self.min_questions = 3  # Minimum questions before allowing completion
     
     async def start_session(self, request: SessionStartRequest) -> SessionStartResponse:
         """Start a new iterative questioning session"""
@@ -170,12 +170,9 @@ class SessionManager:
         """Determine if we should ask another question based on dynamic criteria"""
         num_questions = len([entry for entry in session.conversation_history if entry.answer])
         
-        # Always ask minimum number of questions (unless very high confidence)
+        # Always ask minimum number of questions regardless of confidence
         if num_questions < self.min_questions:
-            # Only skip if extremely high confidence early on
-            if session.confidence_score.overall_confidence >= self.high_confidence_threshold:
-                logger.info(f"Stopping early due to very high confidence ({session.confidence_score.overall_confidence:.2f})")
-                return False
+            logger.info(f"Continuing questioning - only {num_questions}/{self.min_questions} questions asked so far")
             return True
         
         # Safety limit - never exceed max questions

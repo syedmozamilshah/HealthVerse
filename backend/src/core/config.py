@@ -48,9 +48,13 @@ class Config:
         """Validate required configuration"""
         required_vars = [
             "GEMINI_API_KEY",
-            "QDRANT_ENDPOINT",
-            "QDRANT_CLUSTER_KEY"
+            "QDRANT_ENDPOINT"
         ]
+        
+        # QDRANT_CLUSTER_KEY is only required for cloud Qdrant instances
+        # For local development with Qdrant running on localhost, it's optional
+        if cls.QDRANT_ENDPOINT and not cls.QDRANT_ENDPOINT.startswith("http://localhost"):
+            required_vars.append("QDRANT_CLUSTER_KEY")
         
         missing = []
         for var in required_vars:

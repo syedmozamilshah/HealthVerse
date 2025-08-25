@@ -99,16 +99,17 @@ class ConfidenceCalculator:
             
             # Apply conversation length boost to overall confidence (more nuanced)
             # Boost diminishes as we get more answers to prevent over-confidence
+            # Reduced boost values to ensure multiple questions are needed
             if conversation_length <= 3:
-                length_boost = min(0.15, conversation_length * 0.05)  # 5% per early answer
+                length_boost = min(0.08, conversation_length * 0.03)  # 3% per early answer (reduced from 5%)
             else:
-                length_boost = 0.15 + min(0.1, (conversation_length - 3) * 0.02)  # 2% per later answer
+                length_boost = 0.09 + min(0.06, (conversation_length - 3) * 0.015)  # 1.5% per later answer (reduced from 2%)
             
-            combined_confidence.overall_confidence = min(1.0, combined_confidence.overall_confidence + length_boost)
+            combined_confidence.overall_confidence = min(0.7, combined_confidence.overall_confidence + length_boost)
             
-            # Add information quality assessment
-            info_quality_boost = self._assess_information_quality(initial_condition, conversation_history, new_answer)
-            combined_confidence.overall_confidence = min(1.0, combined_confidence.overall_confidence + info_quality_boost)
+            # Add information quality assessment with reduced boost
+            info_quality_boost = self._assess_information_quality(initial_condition, conversation_history, new_answer) * 0.6  # Reduce boost by 40%
+            combined_confidence.overall_confidence = min(0.7, combined_confidence.overall_confidence + info_quality_boost)
             
             logger.info(f"Updated confidence: {combined_confidence.overall_confidence:.2f} after {conversation_length + 1} exchanges")
             return combined_confidence

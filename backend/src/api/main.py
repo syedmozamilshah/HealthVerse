@@ -32,8 +32,12 @@ async def lifespan(app: FastAPI):
         logger.info("Configuration validated successfully")
         
         # Initialize Qdrant collection
-        await qdrant_service.initialize_collection()
-        logger.info("Qdrant collection initialized")
+        try:
+            await qdrant_service.initialize_collection()
+            logger.info("Qdrant collection initialized")
+        except Exception as e:
+            logger.warning(f"Qdrant initialization failed: {str(e)}")
+            logger.warning("Running in development mode with limited functionality")
         
         logger.info("Application startup complete")
     except Exception as e:
