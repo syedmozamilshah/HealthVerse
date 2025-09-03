@@ -1,0 +1,34 @@
+# Environment Variables - DO NOT COMMIT
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node.js Frontend Dependencies - DO NOT COMMIT
+frontend/node_modules/
+frontend/build/
+
+# Python Cache (safe to exclude)
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+
+# Temporary Files
+*.tmp
+*.temp
+
+# Logs
+*.log

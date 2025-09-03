@@ -1,0 +1,2082 @@
+[
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "blurry vision",
+      "loss of side vision",
+      "eye pain",
+      "halos around lights",
+      "eye redness"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports blurry vision, loss of side vision, eye pain, halos around lights, eye redness, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of peripheral vision",
+      "mild headaches",
+      "blurry vision",
+      "seeing halos",
+      "nausea"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports loss of peripheral vision, mild headaches, blurry vision, seeing halos, nausea, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "eye pressure",
+      "headache",
+      "vision loss in one eye",
+      "light sensitivity",
+      "eye redness"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports eye pressure, headache, vision loss in one eye, light sensitivity, eye redness, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "difficulty seeing in dim light",
+      "blurred vision",
+      "tunnel vision",
+      "mild eye ache",
+      "eye strain"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports difficulty seeing in dim light, blurred vision, tunnel vision, mild eye ache, eye strain, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "blind spots",
+      "gradual vision loss",
+      "eye discomfort",
+      "halos around lights",
+      "headache"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports blind spots, gradual vision loss, eye discomfort, halos around lights, headache, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "trouble adjusting to dark rooms",
+      "eye pain",
+      "side vision loss",
+      "blurry vision",
+      "light sensitivity"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports trouble adjusting to dark rooms, eye pain, side vision loss, blurry vision, light sensitivity, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "nausea",
+      "headache",
+      "eye pressure",
+      "loss of side vision",
+      "halos at night"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports nausea, headache, eye pressure, loss of side vision, halos at night, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "eye strain",
+      "blurry vision",
+      "loss of night vision",
+      "light halos",
+      "eye redness"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports eye strain, blurry vision, loss of night vision, light halos, eye redness, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "tunnel vision",
+      "eye pain",
+      "pressure sensation",
+      "headache",
+      "blurred sight"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports tunnel vision, eye pain, pressure sensation, headache, blurred sight, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of side vision",
+      "light sensitivity",
+      "eye redness",
+      "blurred vision",
+      "eye pain"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports loss of side vision, light sensitivity, eye redness, blurred vision, eye pain, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "blurry vision",
+      "loss of side vision",
+      "eye pain",
+      "halos around lights",
+      "eye redness"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports blurry vision, loss of side vision, eye pain, halos around lights, eye redness, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of peripheral vision",
+      "mild headaches",
+      "blurry vision",
+      "seeing halos",
+      "nausea"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports loss of peripheral vision, mild headaches, blurry vision, seeing halos, nausea, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "eye pressure",
+      "headache",
+      "vision loss in one eye",
+      "light sensitivity",
+      "eye redness"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports eye pressure, headache, vision loss in one eye, light sensitivity, eye redness, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "difficulty seeing in dim light",
+      "blurred vision",
+      "tunnel vision",
+      "mild eye ache",
+      "eye strain"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports difficulty seeing in dim light, blurred vision, tunnel vision, mild eye ache, eye strain, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "blind spots",
+      "gradual vision loss",
+      "eye discomfort",
+      "halos around lights",
+      "headache"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports blind spots, gradual vision loss, eye discomfort, halos around lights, headache, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "trouble adjusting to dark rooms",
+      "eye pain",
+      "side vision loss",
+      "blurry vision",
+      "light sensitivity"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports trouble adjusting to dark rooms, eye pain, side vision loss, blurry vision, light sensitivity, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "nausea",
+      "headache",
+      "eye pressure",
+      "loss of side vision",
+      "halos at night"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports nausea, headache, eye pressure, loss of side vision, halos at night, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "eye strain",
+      "blurry vision",
+      "loss of night vision",
+      "light halos",
+      "eye redness"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports eye strain, blurry vision, loss of night vision, light halos, eye redness, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "tunnel vision",
+      "eye pain",
+      "pressure sensation",
+      "headache",
+      "blurred sight"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports tunnel vision, eye pain, pressure sensation, headache, blurred sight, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of side vision",
+      "light sensitivity",
+      "eye redness",
+      "blurred vision",
+      "eye pain"
+    ],
+    "disease": "Glaucoma",
+    "description": "Patient reports loss of side vision, light sensitivity, eye redness, blurred vision, eye pain, suggesting possible Glaucoma."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "blurred vision",
+      "floating spots",
+      "dark areas in vision",
+      "difficulty seeing at night",
+      "vision loss"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports blurred vision, floating spots, dark areas in vision, difficulty seeing at night, vision loss, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "flashes of light",
+      "floating dark strings",
+      "blurred sight",
+      "patchy vision",
+      "eye pain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports flashes of light, floating dark strings, blurred sight, patchy vision, eye pain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of central vision",
+      "blurred vision",
+      "difficulty reading",
+      "eye strain",
+      "flashes"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports loss of central vision, blurred vision, difficulty reading, eye strain, flashes, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "dark spots in vision",
+      "trouble focusing",
+      "blurred vision",
+      "light sensitivity",
+      "eye pain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports dark spots in vision, trouble focusing, blurred vision, light sensitivity, eye pain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "floaters",
+      "blurred sight",
+      "color vision changes",
+      "dark patches",
+      "trouble reading"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports floaters, blurred sight, color vision changes, dark patches, trouble reading, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "gradual vision loss",
+      "spots in vision",
+      "difficulty with night driving",
+      "blurred vision",
+      "light sensitivity"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports gradual vision loss, spots in vision, difficulty with night driving, blurred vision, light sensitivity, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "vision changes",
+      "floaters",
+      "trouble seeing fine details",
+      "eye discomfort",
+      "headache"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports vision changes, floaters, trouble seeing fine details, eye discomfort, headache, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "patchy vision",
+      "blurred sight",
+      "loss of contrast sensitivity",
+      "flashes of light",
+      "eye pain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports patchy vision, blurred sight, loss of contrast sensitivity, flashes of light, eye pain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of sharp vision",
+      "blurred vision",
+      "trouble recognizing faces",
+      "dark areas",
+      "spots"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports loss of sharp vision, blurred vision, trouble recognizing faces, dark areas, spots, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "difficulty seeing colors",
+      "blurred vision",
+      "floaters",
+      "dark spots",
+      "eye strain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports difficulty seeing colors, blurred vision, floaters, dark spots, eye strain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "blurred vision",
+      "floating spots",
+      "dark areas in vision",
+      "difficulty seeing at night",
+      "vision loss"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports blurred vision, floating spots, dark areas in vision, difficulty seeing at night, vision loss, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "flashes of light",
+      "floating dark strings",
+      "blurred sight",
+      "patchy vision",
+      "eye pain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports flashes of light, floating dark strings, blurred sight, patchy vision, eye pain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of central vision",
+      "blurred vision",
+      "difficulty reading",
+      "eye strain",
+      "flashes"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports loss of central vision, blurred vision, difficulty reading, eye strain, flashes, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "dark spots in vision",
+      "trouble focusing",
+      "blurred vision",
+      "light sensitivity",
+      "eye pain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports dark spots in vision, trouble focusing, blurred vision, light sensitivity, eye pain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "floaters",
+      "blurred sight",
+      "color vision changes",
+      "dark patches",
+      "trouble reading"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports floaters, blurred sight, color vision changes, dark patches, trouble reading, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "gradual vision loss",
+      "spots in vision",
+      "difficulty with night driving",
+      "blurred vision",
+      "light sensitivity"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports gradual vision loss, spots in vision, difficulty with night driving, blurred vision, light sensitivity, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "vision changes",
+      "floaters",
+      "trouble seeing fine details",
+      "eye discomfort",
+      "headache"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports vision changes, floaters, trouble seeing fine details, eye discomfort, headache, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "patchy vision",
+      "blurred sight",
+      "loss of contrast sensitivity",
+      "flashes of light",
+      "eye pain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports patchy vision, blurred sight, loss of contrast sensitivity, flashes of light, eye pain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "loss of sharp vision",
+      "blurred vision",
+      "trouble recognizing faces",
+      "dark areas",
+      "spots"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports loss of sharp vision, blurred vision, trouble recognizing faces, dark areas, spots, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ophthalmologist",
+    "symptoms": [
+      "difficulty seeing colors",
+      "blurred vision",
+      "floaters",
+      "dark spots",
+      "eye strain"
+    ],
+    "disease": "Diabetic Retinopathy",
+    "description": "Patient reports difficulty seeing colors, blurred vision, floaters, dark spots, eye strain, suggesting possible Diabetic Retinopathy."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry vision",
+      "eye strain",
+      "headaches",
+      "difficulty seeing at night",
+      "squinting"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports blurry vision, eye strain, headaches, difficulty seeing at night, squinting, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distorted vision",
+      "trouble focusing",
+      "headache",
+      "blurred near and far sight",
+      "eye discomfort"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports distorted vision, trouble focusing, headache, blurred near and far sight, eye discomfort, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "eye fatigue",
+      "double vision",
+      "blurred sight",
+      "night glare",
+      "headache"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports eye fatigue, double vision, blurred sight, night glare, headache, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble reading",
+      "eye strain",
+      "blurred vision",
+      "light halos",
+      "tired eyes"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports trouble reading, eye strain, blurred vision, light halos, tired eyes, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty focusing on fine print",
+      "blurry vision",
+      "eye discomfort",
+      "headache",
+      "sensitivity to light"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports difficulty focusing on fine print, blurry vision, eye discomfort, headache, sensitivity to light, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry vision",
+      "eye strain",
+      "headaches",
+      "difficulty seeing at night",
+      "squinting"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports blurry vision, eye strain, headaches, difficulty seeing at night, squinting, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distorted vision",
+      "trouble focusing",
+      "headache",
+      "blurred near and far sight",
+      "eye discomfort"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports distorted vision, trouble focusing, headache, blurred near and far sight, eye discomfort, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "eye fatigue",
+      "double vision",
+      "blurred sight",
+      "night glare",
+      "headache"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports eye fatigue, double vision, blurred sight, night glare, headache, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble reading",
+      "eye strain",
+      "blurred vision",
+      "light halos",
+      "tired eyes"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports trouble reading, eye strain, blurred vision, light halos, tired eyes, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty focusing on fine print",
+      "blurry vision",
+      "eye discomfort",
+      "headache",
+      "sensitivity to light"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports difficulty focusing on fine print, blurry vision, eye discomfort, headache, sensitivity to light, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry vision",
+      "eye strain",
+      "headaches",
+      "difficulty seeing at night",
+      "squinting"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports blurry vision, eye strain, headaches, difficulty seeing at night, squinting, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distorted vision",
+      "trouble focusing",
+      "headache",
+      "blurred near and far sight",
+      "eye discomfort"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports distorted vision, trouble focusing, headache, blurred near and far sight, eye discomfort, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "eye fatigue",
+      "double vision",
+      "blurred sight",
+      "night glare",
+      "headache"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports eye fatigue, double vision, blurred sight, night glare, headache, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble reading",
+      "eye strain",
+      "blurred vision",
+      "light halos",
+      "tired eyes"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports trouble reading, eye strain, blurred vision, light halos, tired eyes, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty focusing on fine print",
+      "blurry vision",
+      "eye discomfort",
+      "headache",
+      "sensitivity to light"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports difficulty focusing on fine print, blurry vision, eye discomfort, headache, sensitivity to light, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry vision",
+      "eye strain",
+      "headaches",
+      "difficulty seeing at night",
+      "squinting"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports blurry vision, eye strain, headaches, difficulty seeing at night, squinting, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distorted vision",
+      "trouble focusing",
+      "headache",
+      "blurred near and far sight",
+      "eye discomfort"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports distorted vision, trouble focusing, headache, blurred near and far sight, eye discomfort, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "eye fatigue",
+      "double vision",
+      "blurred sight",
+      "night glare",
+      "headache"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports eye fatigue, double vision, blurred sight, night glare, headache, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble reading",
+      "eye strain",
+      "blurred vision",
+      "light halos",
+      "tired eyes"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports trouble reading, eye strain, blurred vision, light halos, tired eyes, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty focusing on fine print",
+      "blurry vision",
+      "eye discomfort",
+      "headache",
+      "sensitivity to light"
+    ],
+    "disease": "Astigmatism",
+    "description": "Patient reports difficulty focusing on fine print, blurry vision, eye discomfort, headache, sensitivity to light, indicating possible Astigmatism."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty reading up close",
+      "eye strain",
+      "blurred near vision",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports difficulty reading up close, eye strain, blurred near vision, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing distant objects",
+      "blurry far vision",
+      "eye strain",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing distant objects, blurry far vision, eye strain, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry text in books",
+      "eye discomfort",
+      "trouble focusing up close",
+      "headache",
+      "tired eyes"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports blurry text in books, eye discomfort, trouble focusing up close, headache, tired eyes, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distant road signs appear blurry",
+      "eye strain",
+      "squinting",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports distant road signs appear blurry, eye strain, squinting, headache, light sensitivity, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing chalkboard",
+      "blurred far vision",
+      "eye fatigue",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing chalkboard, blurred far vision, eye fatigue, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty reading up close",
+      "eye strain",
+      "blurred near vision",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports difficulty reading up close, eye strain, blurred near vision, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing distant objects",
+      "blurry far vision",
+      "eye strain",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing distant objects, blurry far vision, eye strain, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry text in books",
+      "eye discomfort",
+      "trouble focusing up close",
+      "headache",
+      "tired eyes"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports blurry text in books, eye discomfort, trouble focusing up close, headache, tired eyes, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distant road signs appear blurry",
+      "eye strain",
+      "squinting",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports distant road signs appear blurry, eye strain, squinting, headache, light sensitivity, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing chalkboard",
+      "blurred far vision",
+      "eye fatigue",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing chalkboard, blurred far vision, eye fatigue, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty reading up close",
+      "eye strain",
+      "blurred near vision",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports difficulty reading up close, eye strain, blurred near vision, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing distant objects",
+      "blurry far vision",
+      "eye strain",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing distant objects, blurry far vision, eye strain, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry text in books",
+      "eye discomfort",
+      "trouble focusing up close",
+      "headache",
+      "tired eyes"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports blurry text in books, eye discomfort, trouble focusing up close, headache, tired eyes, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distant road signs appear blurry",
+      "eye strain",
+      "squinting",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports distant road signs appear blurry, eye strain, squinting, headache, light sensitivity, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing chalkboard",
+      "blurred far vision",
+      "eye fatigue",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing chalkboard, blurred far vision, eye fatigue, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "difficulty reading up close",
+      "eye strain",
+      "blurred near vision",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports difficulty reading up close, eye strain, blurred near vision, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing distant objects",
+      "blurry far vision",
+      "eye strain",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing distant objects, blurry far vision, eye strain, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "blurry text in books",
+      "eye discomfort",
+      "trouble focusing up close",
+      "headache",
+      "tired eyes"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports blurry text in books, eye discomfort, trouble focusing up close, headache, tired eyes, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "distant road signs appear blurry",
+      "eye strain",
+      "squinting",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports distant road signs appear blurry, eye strain, squinting, headache, light sensitivity, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optician",
+    "symptoms": [
+      "trouble seeing chalkboard",
+      "blurred far vision",
+      "eye fatigue",
+      "headache",
+      "squinting"
+    ],
+    "disease": "Near/Distant Vision Issue",
+    "description": "Patient reports trouble seeing chalkboard, blurred far vision, eye fatigue, headache, squinting, indicating possible Near/Distant Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye strain",
+      "blurred vision",
+      "headache",
+      "difficulty focusing",
+      "tired eyes"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye strain, blurred vision, headache, difficulty focusing, tired eyes, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "trouble switching focus between near and far",
+      "eye fatigue",
+      "blurred vision",
+      "headache",
+      "double vision"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports trouble switching focus between near and far, eye fatigue, blurred vision, headache, double vision, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "difficulty reading for long periods",
+      "eye strain",
+      "blurred near sight",
+      "headache",
+      "light sensitivity"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports difficulty reading for long periods, eye strain, blurred near sight, headache, light sensitivity, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "frequent changes in glasses prescription",
+      "blurry vision",
+      "eye strain",
+      "headache",
+      "focusing problems"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports frequent changes in glasses prescription, blurry vision, eye strain, headache, focusing problems, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Optometrist",
+    "symptoms": [
+      "eye discomfort",
+      "difficulty seeing fine print",
+      "blurred vision",
+      "headache",
+      "light glare"
+    ],
+    "disease": "General Vision Issue",
+    "description": "Patient reports eye discomfort, difficulty seeing fine print, blurred vision, headache, light glare, indicating a General Vision Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "discomfort with prosthetic eye",
+      "socket irritation",
+      "redness",
+      "watery eye",
+      "itchiness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports discomfort with prosthetic eye, socket irritation, redness, watery eye, itchiness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "loose fit of prosthetic eye",
+      "discomfort",
+      "socket swelling",
+      "redness",
+      "mild pain"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports loose fit of prosthetic eye, discomfort, socket swelling, redness, mild pain, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "dryness in socket",
+      "discomfort",
+      "itching",
+      "swelling",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports dryness in socket, discomfort, itching, swelling, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "difficulty moving prosthetic eye",
+      "discomfort",
+      "socket irritation",
+      "tearing",
+      "redness"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports difficulty moving prosthetic eye, discomfort, socket irritation, tearing, redness, suggesting Prosthetic Eye Issue."
+  },
+  {
+    "patient": "Anonymous",
+    "doctor": "Ocularist",
+    "symptoms": [
+      "socket pain",
+      "discomfort",
+      "redness",
+      "discharge",
+      "swelling"
+    ],
+    "disease": "Prosthetic Eye Issue",
+    "description": "Patient reports socket pain, discomfort, redness, discharge, swelling, suggesting Prosthetic Eye Issue."
+  }
+]
