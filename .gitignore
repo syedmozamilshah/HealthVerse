@@ -1,23 +1,40 @@
-# .NET Core
+# General
+.vs/
+.vscode/
+*.log
+*.user
+*.suo
+*.sqlite3
+
+# .NET / C# / Blazor
 bin/
 obj/
+TestResults/
+*.dll
+*.exe
+*.pdb
 appsettings.json
 appsettings.*.json
 
-# Flutter
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 build/
-*.log
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+*.iml
 
 # Python
 __pycache__/
 *.pyc
 .env
+venv/
+env/
 
-# Specific Sensitive Files
+# Specific Sensitive & Scratch Files
 migrate_mongodb.py
 test.py
 test_groq_only.py
