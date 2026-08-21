@@ -1,0 +1,52 @@
+# Build and publish folders
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Secrets
+appsettings.Development.json
+appsettings.Local.json
+appsettings.json
+secrets.json
+
+# Others
+*.swp
+*.tmp
+*.bak
+*.old
+*.orig
+.idea/
+*.iml
+
+# Rider
+.idea/
+*.sln.iml
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Resharper
+*.DotSettings.user
+_ReSharper*/
+
+# IIS Express
+. vs/
+
+# npm
+node_modules/

@@ -1,0 +1,165 @@
+﻿@rendermode InteractiveServer
+@page "/"
+@using AdminDashboard.Components.Shared
+@using AdminDashboard.Services
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject ApiService ApiService
+
+<PageTitle>Dashboard - HealthVerse Admin</PageTitle>
+
+<div class="dashboard-page">
+    <h1 class="h3 fw-bold text-dark mb-4">Dashboard Overview</h1>
+    
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-lg-3">
+            <StatCard Label="Pending Verifications" 
+                        Value="@unverifiedDoctors.ToString()" 
+                        Icon="bi-clock-history" 
+                        BackgroundColorClass="bg-warning" 
+                        IsLoading="@isLoading" />
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <StatCard Label="Total Active Doctors" 
+                        Value="@verifiedDoctors.ToString()" 
+                        Icon="bi-person-check-fill" 
+                        BackgroundColorClass="bg-primary" 
+                        IsLoading="@isLoading" />
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <StatCard Label="Total Patients" 
+                        Value="@totalPatients.ToString()" 
+                        Icon="bi-people-fill" 
+                        BackgroundColorClass="bg-success" 
+                        IsLoading="@isLoading" />
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <StatCard Label="Verified Users" 
+                        Value="@verifiedUsers.ToString()" 
+                        Icon="bi-graph-up-arrow" 
+                        BackgroundColorClass="bg-info" 
+                        IsLoading="@isLoading" />
+        </div>
+    </div>
+
+    <!-- Doctor Subscriptions Chart -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="skeleton skeleton-text" style="width: 30%; height: 1.5rem; margin-bottom: 1.5rem;"></div>
+                        <div class="skeleton skeleton-rect" style="height: 350px; border-radius: 8px;"></div>
+                    }
+                    else
+                    {
+                        <h5 class="card-title fw-bold mb-4 animate-fade-in">
+                            <i class="bi bi-graph-up me-2"></i>Doctor Subscriptions (Last 7 Days)
+                        </h5>
+                        <canvas id="subscriptionChart" style="max-height: 400px;" class="animate-fade-in"></canvas>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isLoading = true;
+    private long totalPatients = 0;
+    private long verifiedUsers = 0;
+    private long verifiedDoctors = 0;
+    private long unverifiedDoctors = 0;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDashboardData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeChart();
+        }
+    }
+
+    // M-9 USED FOR LOADING DASHBOARD DATA PLUS GRAPH
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+        
+        // Fetch user counts
+        var userCountResponse = await ApiService.GetAsync<ApiResponse<CountData>>("/api/admin/UserData/count");
+        if (userCountResponse?.IsSuccess == true && userCountResponse.Data != null)
+        {
+            totalPatients = userCountResponse.Data.TotalUsers;
+            verifiedUsers = userCountResponse.Data.VerifiedUsers;
+        }
+
+        // Fetch doctor counts
+        var doctorCountResponse = await ApiService.GetAsync<ApiResponse<CountData>>("/api/admin/DoctorData/count");
+        if (doctorCountResponse?.IsSuccess == true && doctorCountResponse.Data != null)
+        {
+            verifiedDoctors = doctorCountResponse.Data.VerifiedDoctors;
+            unverifiedDoctors = doctorCountResponse.Data.UnverifiedDoctors;
+        }
+
+        isLoading = false;
+    }
+
+    private async Task InitializeChart()
+    {
+        try
+        {
+            await Task.Delay(1000); // Wait for DOM to be ready
+
+            // Fetch graph data from API
+            var graphResponse = await ApiService.GetAsync<ApiResponse<GraphData>>("/api/graphInfo");
+            
+            if (graphResponse?.IsSuccess == true && graphResponse.Data != null)
+            {
+                var chartData = new
+                {
+                    labels = graphResponse.Data.Labels,
+                    datasets = new[]
+                    {
+                        new
+                        {
+                            label = "Active Subscriptions",
+                            data = graphResponse.Data.ActiveSubscriptions,
+                            backgroundColor = "rgba(25, 135, 84, 0.2)",
+                            borderColor = "rgb(25, 135, 84)",
+                            borderWidth = 2,
+                            tension = 0.4
+                        }
+                    }
+                };
+
+                await JSRuntime.InvokeVoidAsync("initializeChart", "subscriptionChart", chartData);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chart error: {ex.Message}");
+        }
+    }
+
+    public class GraphData
+    {
+        public string[] Labels { get; set; } = Array.Empty<string>();
+        public int[] ActiveSubscriptions { get; set; } = Array.Empty<int>();
+    }
+}
+

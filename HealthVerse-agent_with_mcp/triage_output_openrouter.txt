@@ -1,0 +1,28 @@
+[English] Prompt: I have blurry vision and eye pain that started yesterday
+Response:
+**Assessment**  
+- **Symptoms:** New‑onset blurry vision + eye pain (started yesterday).  
+- **Red flags:** Pain with visual disturbance suggests an intra‑ocular or corneal problem that can progress quickly (e.g., corneal ulcer, acute angle‑closure glaucoma, anterior uveitis, keratitis).  
+
+**Doctor type needed**: **Urgent Ophthalmology (eye‑specialist) evaluation** – preferably seen within the next few hours, or go to an emergency department if pain is severe, vision is rapidly worsening, or there is photophobia, redness, halos around lights, or headache.
+
+**Reasoning**  
+- Blurry vision alone can be benign, but when combined with eye pain it points to an acute ocular pathology that
+--------------------------------------------------
+
+[Roman Urdu] Prompt: Mujhe dhundla nazar aa raha hai aur kal se aankh mein dard hai
+Response:
+**संक्षिप्त मूल्यांकन**
+
+- **लक्षण:** धुंधली दृष्टि (blurred vision) + आँख में दर्द (eye pain) – दोनों एक साथ अचानक शुरू हुए हैं।  
+- **समय:** कल से (लगभग 24 घंटे)  
+- **संभावित कारण:**  
+  1. **तीव्र एंगल‑क्लोज़र ग्लॉकोमा** – तेज़ दर्द, धुंध
+--------------------------------------------------
+
+[Urdu] Prompt: مجھے دھندلا نظر آ رہا ہے اور کل سے آنکھ میں درد ہے
+Response:
+**تشخیص (تخمینی):** دھندلا نظر آنا اور آنکھ میں درد ایک ساتھ ہونا اکثر کسی سوزش یا دباؤ کی وجہ سے ہوتا ہے۔ ممکنہ وجوہات میں شامل ہیں:
+
+- **تیز زاویے کا بند گلوکوما** (acute angle‑closure glaucoma) – شدید درد، دھندلا نظر اور سر میں
+--------------------------------------------------

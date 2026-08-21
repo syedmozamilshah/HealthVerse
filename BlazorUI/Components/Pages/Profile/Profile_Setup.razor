@@ -1,0 +1,2605 @@
+@rendermode InteractiveServer
+@page "/profile-setup"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@using BlazorUI.Authentication
+@using BlazorUI.Models
+@using BlazorUI.Models.DoctorModel
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using NetcodeHub.Packages.Components.Toast
+@using Microsoft.AspNetCore.Components
+@using BlazorUI.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@inject IHttpClientFactory HttpClientFactory
+@inject ProtectedSessionStorage SessionStorage
+@inject ProtectedLocalStorage LocalStorage
+@inject NavigationManager Navigation
+@inject AppointmentHubClient HubClient
+@inject ApiClient ApiClient
+@inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
+@implements IAsyncDisposable
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" />
+<link href="app.css" rel="stylesheet" />
+
+<style>
+    .settings-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f8fffe 0%, #e8f5e9 50%, #f1f8e9 100%);
+    }
+    
+    .settings-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e8f5e9;
+    }
+    
+    .tab-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 500;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .tab-btn:hover {
+        background: #f1f5f9;
+        color: #334155;
+    }
+    
+    .tab-btn.active {
+        background: #198754;
+        color: white;
+    }
+    
+    .tab-btn i {
+        font-size: 1.1rem;
+    }
+    
+    .upload-overlay {
+        background: rgba(0,0,0,0.6);
+        opacity: 0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border-radius: 50%;
+    }
+    
+    .avatar-container:hover .upload-overlay {
+        opacity: 1;
+    }
+    
+    .avatar-container {
+        position: relative;
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
+    
+    .avatar-container:hover {
+        transform: scale(1.02);
+    }
+    
+    .camera-icon {
+        transition: all 0.3s ease;
+    }
+    
+    .camera-icon:hover {
+        transform: scale(1.1);
+        background-color: #157347 !important;
+    }
+    
+    .form-control-modern {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+    }
+    
+    .form-control-modern:focus {
+        border-color: #198754;
+        box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.15);
+    }
+
+    /* Password strength UI */
+    .password-criteria { display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem; }
+    .criteria-item { padding:6px 10px; border-radius:999px; font-size:0.875rem; display:inline-flex; align-items:center; gap:6px; }
+    .criteria-item.success { background: rgba(25,135,84,0.06); color:#198754; border:1px solid rgba(25,135,84,0.12); }
+    .criteria-item.danger { background: rgba(220,53,69,0.04); color:#dc3545; border:1px solid rgba(220,53,69,0.08); }
+    .password-input-strong { box-shadow: 0 0 0 0.2rem rgba(25,135,84,0.12); border-color: #198754 !important; }
+    .password-input-weak { box-shadow: 0 0 0 0.2rem rgba(220,53,69,0.08); border-color: #dc3545 !important; }
+    
+    .setting-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: #f8fafc;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .setting-item:hover {
+        background: #f1f5f9;
+    }
+    
+    .setting-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+
+    /* Calendar Styles */
+    .calendar-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .calendar-week {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+    }
+
+    .calendar-day {
+        aspect-ratio: 1;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        background: white;
+        min-height: 70px;
+    }
+
+    .calendar-day:hover:not(.past) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-color: #198754;
+    }
+
+    .calendar-day.available {
+        border-color: #198754;
+        background: linear-gradient(135deg, #d1e7dd 0%, #e8f5e9 100%);
+    }
+
+    .calendar-day.unavailable {
+        border-color: #fecaca;
+        background: #fef2f2;
+    }
+
+    .calendar-day.today {
+        border-color: #0d6efd;
+        background: linear-gradient(135deg, #cfe2ff 0%, #e0ecff 100%);
+        font-weight: bold;
+    }
+
+    .calendar-day.past {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f8f9fa;
+    }
+
+    .day-number {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .day-name {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .availability-indicator {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .btn-save {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+    
+    .section-desc {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+    }
+
+    @@media (max-width: 768px) {
+        .avatar-container { display: block; margin-bottom: 12px; }
+        .avatar-container img, .avatar-container .rounded-circle { width: 84px !important; height: 84px !important; }
+        .avatar-row { flex-wrap: wrap; }
+        .btn-save { width: 100%; display: block; }
+        .settings-card { padding: 16px !important; }
+    }
+
+</style>
+
+<NetcodeHubToast @ref="ToastComponent" 
+                 Position="bottom-right" 
+                 Duration="1000" 
+                 Persist="false" />
+
+<div class="settings-container py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-xl-9">
+                
+                <!-- Header -->
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h2 class="fw-bold text-dark mb-1">
+                            <button class="btn btn-light me-2" @onclick='() => Navigation.NavigateTo("/dashboard", replace: true)'>
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            Settings
+                        </h2>
+                        <p class="text-muted mb-0">Manage your account and preferences</p>
+                    </div>
+                    <span class="badge @(doctorForm.IsVerified ? "bg-success" : "bg-warning text-dark") fs-6 px-3 py-2">
+                        <i class="bi @(doctorForm.IsVerified ? "bi-check-circle" : "bi-clock") me-1"></i>
+                        @(doctorForm.IsVerified ? "Verified" : "Pending Verification")
+                    </span>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="settings-card p-2 mb-4">
+                    <div class="d-flex flex-wrap gap-2">
+                       
+                        <button class="tab-btn @(activeTab == "profile" ? "active" : "")" @onclick='() => activeTab = "profile"'>
+                            <i class="bi bi-person"></i>
+                            <span>Profile</span>
+                        </button>
+                        <button class="tab-btn @(activeTab == "practice" ? "active" : "")" @onclick='() => activeTab = "practice"'>
+                            <i class="bi bi-building"></i>
+                            <span>Clinic Info</span>
+                        </button>
+                         <button class="tab-btn @(activeTab == "verification" ? "active" : "")" @onclick='() => activeTab = "verification"'>
+                            <i class="bi bi-patch-check"></i>
+                            <span>Verification</span>
+                            @if (!doctorForm.IsVerified && !doctorForm.IsSubmittedForVerification)
+                            {
+                                <span class="badge bg-danger ms-1">!</span>
+                            }
+                            else if (doctorForm.IsSubmittedForVerification || doctorForm.IsReVerificationRequired)
+                            {
+                                <span class="badge bg-warning ms-1">⏳</span>
+                            }
+                        </button>
+                        <button class="tab-btn @(activeTab == "schedule" ? "active" : "")" @onclick='() => activeTab = "schedule"'>
+                            <i class="bi @(isSubscriptionActive ? "bi-calendar-week" : "bi-lock-fill text-warning")"></i>
+                            <span>Schedule</span>
+                            @if (!isSubscriptionActive)
+                            {
+                                <span class="badge bg-warning ms-1">$</span>
+                            }
+                        </button>
+                        <button class="tab-btn @(activeTab == "security" ? "active" : "")" @onclick='() => activeTab = "security"'>
+                            <i class="bi bi-shield-lock"></i>
+                            <span>Security</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                @* Use an EditContext so we can validate on blur *@
+                <EditForm EditContext="profileEditContext" OnValidSubmit="SubmitProfile" FormName="ProfileSetup">
+                    <DataAnnotationsValidator />
+
+                    <!-- Profile Tab -->
+                    @if (activeTab == "profile")
+                    {
+                        <div class="settings-card p-4">
+                            <h5 class="section-title">Profile Information</h5>
+                            <p class="section-desc">Update your personal details and professional information</p>
+
+                            <!-- Avatar Section -->
+                            <div class="d-flex align-items-center gap-4 mb-4 p-4 bg-light rounded-3">
+                                <div class="avatar-container">
+                                    @if (isLoading)
+                                    {
+                                        <div class="rounded-circle border d-flex align-items-center justify-content-center bg-white"
+                                             style="width:100px; height:100px; border-width: 4px !important; border-color: rgba(25,135,84,0.2) !important;">
+                                            <div class="spinner-border text-success" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(doctorForm.ImageUrl))
+                                    {
+                                        <img src="@doctorForm.ImageUrl" class="rounded-circle border"
+                                             style="width:100px; height:100px; object-fit:cover; border-width: 4px !important; border-color: rgba(25,135,84,0.2) !important;" alt="Profile" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle border d-flex align-items-center justify-content-center bg-success text-white"
+                                             style="width:100px; height:100px; border-width: 4px !important; border-color: rgba(25,135,84,0.2) !important; font-size: 2rem; font-weight: 600;">
+                                            DR
+                                        </div>
+                                    }
+                                    
+                                    @if (!isLoading)
+                                    {
+                                        <div class="position-absolute bottom-0 end-0 bg-success text-white rounded-circle d-flex align-items-center justify-content-center camera-icon"
+                                             style="width: 32px; height: 32px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"
+                                             @onclick="async () => await TriggerFileInput()">
+                                            <i class="bi bi-camera-fill"></i>
+                                        </div>
+                                    }
+                                    
+                                    <InputFile @ref="fileInput" OnChange="OnImageUpload" accept="image/*" class="d-none" />
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm mb-2" @onclick="async () => await TriggerFileInput()">
+                                        <i class="bi bi-camera me-2"></i>Change Photo
+                                    </button>
+                                    <p class="text-muted small mb-0">JPG, PNG or GIF. Max 5MB.</p>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Licence Number *</label>
+                                    <InputText @bind-Value="doctorForm.LicenceNumber" class="form-control form-control-modern" placeholder="Enter licence number" @onblur="OnProfileLicenceNumberBlur" disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)" />
+                                    <ValidationMessage For="@(() => doctorForm.LicenceNumber)" class="text-danger small" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Speciality *</label>
+                                    <InputSelect @bind-Value="doctorForm.Speciality" class="form-select form-control-modern" disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)">
+                                        <option value="">-- Select Speciality --</option>
+                                        <option>Ophthalmologist</option>
+                                        <option>Optometrist</option>
+                                        <option>Optician</option>
+                                        <option>Ocularist</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => doctorForm.Speciality)" class="text-danger small" />
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Experience (years) *</label>
+                                    <InputSelect @bind-Value="doctorForm.Experience" class="form-select form-control-modern" disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)">
+                                        <option value="">-- Select Experience --</option>
+                                        <option>1</option>
+                                        <option>2</option>
+                                        <option>3</option>
+                                        <option>4</option>
+                                        <option>5</option>
+                                        <option>Other</option>
+                                    </InputSelect>
+                                </div>
+                                @if (doctorForm.Experience == "Other")
+                                {
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Enter Years</label>
+                                        <InputNumber @bind-Value="doctorForm.ExperienceOtherYears" class="form-control form-control-modern" disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)" />
+                                        <ValidationMessage For="@(() => doctorForm.ExperienceOtherYears)" class="text-danger small" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Specialization *</label>
+                                        <InputSelect @bind-Value="doctorForm.Specialization" class="form-select form-control-modern" disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)">
+                                            <option value="">-- Select Specialization --</option>
+                                            <option>MBBS</option>
+                                            <option>FCPS</option>
+                                            <option>MS (Ophthalmology)</option>
+                                            <option>MD</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => doctorForm.Specialization)" class="text-danger small" />
+                                    </div>
+                                }
+                            </div>
+
+                            @if (doctorForm.Experience == "Other")
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Specialization *</label>
+                                    <InputSelect @bind-Value="doctorForm.Specialization" class="form-select form-control-modern" disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)">
+                                        <option value="">-- Select Specialization --</option>
+                                        <option>MBBS</option>
+                                        <option>FCPS</option>
+                                        <option>MS (Ophthalmology)</option>
+                                        <option>MD</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => doctorForm.Specialization)" class="text-danger small" />
+                                </div>
+                            }
+
+                            <div class="mb-2 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-muted">Speciality, experience, and specialization are auto-filled from PMDC when you move to the next field after entering licence number. You can still edit them if needed.</small>
+                                </div>
+                                
+                                @if (doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)
+                                {
+                                    <button type="button" class="btn btn-outline-warning btn-sm ms-3 text-nowrap" @onclick="() => isEditingLockedFields = true">
+                                        <i class="bi bi-pencil me-1"></i>Edit Locked Info
+                                    </button>
+                                }
+                                @if (isEditingLockedFields)
+                                {
+                                    <small class="text-danger ms-3 text-nowrap"><strong>Note:</strong> Editing will require re-verification.</small>
+                                }
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-success btn-save" @onclick='() => activeTab = "practice"'>
+                                    <i class="bi bi-arrow-right me-2"></i>Next
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Practice Tab -->
+                    @if (activeTab == "practice")
+                    {
+                        <div class="settings-card p-4">
+                            <h5 class="section-title">Clinic Information</h5>
+                            <p class="section-desc">Manage your clinic information and settings</p>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">Clinic Location *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-geo-alt text-success"></i>
+                                    </span>
+                                    <InputText @bind-Value="doctorForm.ClinicLocation" class="form-control form-control-modern border-start-0" placeholder="Enter clinic address" />
+                                </div>
+                                <ValidationMessage For="@(() => doctorForm.ClinicLocation)" class="text-danger small" />
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Consultation Fee (PKR) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0">
+                                            <i class="bi bi-currency-dollar text-success"></i>
+                                        </span>
+                                        <InputNumber @bind-Value="doctorForm.Fee" class="form-control form-control-modern border-start-0" @onblur="() => profileEditContext.Validate()" />
+                                    </div>
+                                    <ValidationMessage For="@(() => doctorForm.Fee)" class="text-danger small" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Subscription Start Date</label>
+                                    <div class="form-control form-control-modern bg-light">
+                                        <i class="bi bi-calendar3 text-success me-2"></i>
+                                        @doctorForm.RenewalDate.ToDisplayString("MMM dd, yyyy")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="setting-icon">
+                                        <i class="bi bi-calendar-check"></i>
+                                    </div>
+                                    <div>
+                                        <p class="fw-medium text-dark mb-0">Available for Appointments</p>
+                                        <p class="text-muted small mb-0">Toggle your availability status</p>
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <InputCheckbox @bind-Value="doctorForm.IsAvailable" @bind-Value:after="OnAvailabilityToggleChanged" 
+                                                   class="form-check-input" style="width: 3rem; height: 1.5rem;" />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" class="btn btn-success btn-save" disabled="@isVisible">
+                                    @if (isVisible)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="bi bi-check2 me-2"></i>Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Schedule Tab -->
+                    @if (activeTab == "schedule")
+                    {
+                        <div class="settings-card p-4">
+                            <h5 class="section-title">Availability Schedule</h5>
+                            <p class="section-desc">Set your available dates and time slots for the next 2 weeks</p>
+
+                            @if (!isSubscriptionActive)
+                            {
+                                <div class="alert alert-warning d-flex align-items-center">
+                                    <i class="bi bi-lock-fill me-2 fs-4"></i>
+                                    <div>
+                                        <strong>Subscription Required</strong>
+                                        <p class="mb-2">You need an active subscription to manage your schedule.</p>
+                                        
+                                        @if (doctorForm.IsVerified)
+                                        {
+                                            <button class="btn btn-success btn-sm" @onclick="StartStripeCheckout" disabled="@isProcessingCheckout">
+                                                @if (isProcessingCheckout)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                                }
+                                                <i class="bi bi-credit-card me-1"></i>Subscribe Now
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div class="mt-2 p-2 bg-white rounded border border-warning">
+                                                <div class="text-danger fw-bold mb-1">
+                                                    <i class="bi bi-exclamation-circle me-1"></i>Verification Pending
+                                                </div>
+                                                <p class="mb-0 small text-muted">
+                                                    Your profile must be verified by an administrator before you can subscribe and accept appointments.
+                                                    Please complete the Verification tab if you haven't already.
+                                                </p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else if (!doctorForm.IsAvailable)
+                            {
+                                <div class="alert alert-warning d-flex align-items-center">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <span>Please enable "Available for Appointments" in the Practice tab to set your schedule.</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="calendar-grid mb-4">
+                                    @for (int week = 0; week < 2; week++)
+                                    {
+                                        <div class="calendar-week mb-2">
+                                            @for (int day = 0; day < 7; day++)
+                                            {
+                                                var currentDate = DateTime.Today.AddDays(week * 7 + day);
+                                                var isAvailable = dailyAvailability.ContainsKey(currentDate.Date);
+                                                var isToday = currentDate.Date == DateTime.Today.Date;
+                                                var isPast = currentDate.Date < DateTime.Today.Date;
+                                                
+                                                <div class="calendar-day @(isToday ? "today" : "") @(isPast ? "past" : "") @(isAvailable ? "available" : "unavailable")"
+                                                     @onclick="() => OpenTimeEditor(currentDate)"
+                                                     title="@($"{currentDate:MMM dd, yyyy} - {(isAvailable ? "Available" : "Unavailable")}")">
+                                                    <div class="day-number">@currentDate.Day</div>
+                                                    <div class="day-name">@currentDate.ToString("ddd")</div>
+                                                    <div class="availability-indicator">
+                                                        <i class="bi @(isAvailable ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")"></i>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <p class="text-muted small mb-4">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    By default all dates are unavailable. Click a date to set daytime hours.
+                                </p>
+
+                                @if (selectedDate.HasValue)
+                                {
+                                    var isAlreadySet = dailyAvailability.ContainsKey(selectedDate.Value);
+                                    <div class="border rounded-3 p-4 bg-light">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-calendar-event text-success me-2 fs-5"></i>
+                                                <strong class="fs-5">@selectedDate.Value.ToString("dddd, MMM dd")</strong>
+                                            </div>
+                                            @if (isAlreadySet)
+                                            {
+                                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Already Set</span>
+                                            }
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">
+                                                    <i class="bi bi-sunrise text-success me-1"></i>Start Time
+                                                </label>
+                                                <InputText type="time" class="form-control form-control-modern" step="900" 
+                                                           min="@minDayTimeString" max="@maxDayTimeString" @bind-Value="selectedStartTimeString" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-medium">
+                                                    <i class="bi bi-sunset text-success me-1"></i>End Time
+                                                </label>
+                                                <InputText type="time" class="form-control form-control-modern" step="900" 
+                                                           min="@minDayTimeString" max="@maxDayTimeString" @bind-Value="selectedEndTimeString" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 d-flex gap-2">
+                                            <button type="button" class="btn btn-success" @onclick="SaveSelectedDateTime">
+                                                <i class="bi bi-check2 me-1"></i>@(isAlreadySet ? "Update" : "Save & Next")
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" @onclick="SkipSelectedDate">
+                                                <i class="bi bi-x-circle me-1"></i>Mark Unavailable
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" @onclick="() => selectedDate = null">
+                                                <i class="bi bi-x me-1"></i>Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" class="btn btn-success btn-save" disabled="@isVisible">
+                                    @if (isVisible)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="bi bi-check2 me-2"></i>Save Schedule
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Verification Tab -->
+                    @if (activeTab == "verification")
+                    {
+                        <div class="settings-card p-4">
+                            <h5 class="section-title">Doctor Verification</h5>
+                            <p class="section-desc">Upload required documents to verify your credentials and unlock AI Agent access</p>
+
+                            <!-- Verification Status Banner -->
+                            <div class="alert @GetVerificationAlertClass() mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi @GetVerificationIcon() me-2 fs-4"></i>
+                                    <div>
+                                        <strong>@GetVerificationStatusTitle()</strong>
+                                        <p class="mb-0 small">@GetVerificationStatusMessage()</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- License Information Section -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-dark mb-3">
+                                    <i class="bi bi-file-earmark-medical text-success me-2"></i>License Information
+                                    @if (doctorForm.IsLicenseInfoLocked)
+                                    {
+                                        <span class="badge bg-secondary ms-2"><i class="bi bi-lock"></i> Locked</span>
+                                    }
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">PMDC License Number *</label>
+                                        <InputText @bind-Value="verificationForm.LicenceNumber" 
+                                                   class="form-control form-control-modern" 
+                                                   placeholder="Enter PMDC license number"
+                                                   @onblur="OnLicenceNumberBlur"
+                                                   disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)" />
+                                        @if (!(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields))
+                                        {
+                                            <button type="button" class="btn btn-link btn-sm px-0 mt-1" @onclick="ManualPmdcRecheck" disabled="@isPmdcLookupLoading">
+                                                <i class="bi bi-arrow-clockwise me-1"></i>Re-check PMDC
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Specialization *</label>
+                                        <InputSelect @bind-Value="verificationForm.Specialization" 
+                                                     class="form-select form-control-modern"
+                                                     disabled="@(doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)">
+                                            <option value="">-- Select Specialization --</option>
+                                            <option>MBBS</option>
+                                            <option>FCPS</option>
+                                            <option>MS (Ophthalmology)</option>
+                                            <option>MD</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+
+                                @if (isPmdcLookupLoading)
+                                {
+                                    <div class="alert alert-info mt-3 mb-0 py-2">
+                                        <i class="bi bi-hourglass-split me-2"></i>Checking PMDC records...
+                                    </div>
+                                }
+                                else if (pmdcLookupTried)
+                                {
+                                    <div class="alert @(pmdcIsVerified ? "alert-success" : "alert-warning") mt-3 mb-0 py-2">
+                                        <div><strong>@(pmdcIsVerified ? "PMDC record found" : "PMDC verification warning")</strong></div>
+                                        @if (!string.IsNullOrWhiteSpace(pmdcLookupMessage))
+                                        {
+                                            <div class="small">@pmdcLookupMessage</div>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(pmdcDoctorName) || !string.IsNullOrWhiteSpace(pmdcQualification) || !string.IsNullOrWhiteSpace(pmdcStatus))
+                                        {
+                                            <div class="small mt-1">
+                                                @if (!string.IsNullOrWhiteSpace(pmdcDoctorName))
+                                                {
+                                                    <span class="me-3"><strong>Name:</strong> @pmdcDoctorName</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(pmdcQualification))
+                                                {
+                                                    <span class="me-3"><strong>Qualification:</strong> @pmdcQualification</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(pmdcStatus))
+                                                {
+                                                    <span><strong>Status:</strong> @pmdcStatus</span>
+                                                }
+                                            </div>
+                                        }
+                                        @if (!pmdcIsVerified)
+                                        {
+                                            <div class="small mt-1">You can still submit documents. Admin can review manually.</div>
+                                        }
+                                    </div>
+                                }
+
+                                @if (doctorForm.IsLicenseInfoLocked && !isEditingLockedFields)
+                                {
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => isEditingLockedFields = true">
+                                            <i class="bi bi-pencil me-1"></i>Request to Edit (Requires Re-verification)
+                                        </button>
+                                    </div>
+                                }
+                                @if (isEditingLockedFields)
+                                {
+                                    <div class="alert alert-warning mt-3">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        Editing these fields will require re-verification. Your AI Agent access will be suspended until approved.
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Document Upload Section -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-dark mb-3">
+                                    <i class="bi bi-file-earmark-image text-success me-2"></i>Verification Documents
+                                </h6>
+                                
+                                <!-- CNIC Documents -->
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">CNIC Front *</label>
+                                        <div class="document-upload-box @(string.IsNullOrEmpty(verificationForm.CnicFrontImage) ? "" : "has-image")">
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.CnicFrontImage) ? "display:none;" : "")">
+                                                <div class="uploaded-preview">
+                                                    <img src="@verificationForm.CnicFrontImage" alt="CNIC Front" class="img-thumbnail" style="max-height: 150px;" />
+                                                    @if ((!doctorForm.IsSubmittedForVerification && !doctorForm.IsVerified) || isEditingLockedFields)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="ClearCnicFront">
+                                                            <i class="bi bi-trash"></i> Remove
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.CnicFrontImage) ? "" : "display:none;")">
+                                                <InputFile OnChange="OnCnicFrontUpload" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="form-control" />
+                                                <small class="text-muted">Upload clear photo of CNIC front side (PNG, JPEG)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">CNIC Back *</label>
+                                        <div class="document-upload-box">
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.CnicBackImage) ? "display:none;" : "")">
+                                                <div class="uploaded-preview">
+                                                    <img src="@verificationForm.CnicBackImage" alt="CNIC Back" class="img-thumbnail" style="max-height: 150px;" />
+                                                    @if ((!doctorForm.IsSubmittedForVerification && !doctorForm.IsVerified) || isEditingLockedFields)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="ClearCnicBack">
+                                                            <i class="bi bi-trash"></i> Remove
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.CnicBackImage) ? "" : "display:none;")">
+                                                <InputFile OnChange="OnCnicBackUpload" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="form-control" />
+                                                <small class="text-muted">Upload clear photo of CNIC back side (PNG, JPEG)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Degree Documents -->
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">MBBS Degree *</label>
+                                        <div class="document-upload-box">
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.MbbsImage) ? "display:none;" : "")">
+                                                <div class="uploaded-preview">
+                                                    <img src="@verificationForm.MbbsImage" alt="MBBS Degree" class="img-thumbnail" style="max-height: 150px;" />
+                                                    @if ((!doctorForm.IsSubmittedForVerification && !doctorForm.IsVerified) || isEditingLockedFields)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="ClearMbbs">
+                                                            <i class="bi bi-trash"></i> Remove
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.MbbsImage) ? "" : "display:none;")">
+                                                <InputFile OnChange="OnMbbsUpload" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="form-control" />
+                                                <small class="text-muted">Upload scanned copy of MBBS degree (PNG, JPEG)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">FCPS Certificate (Optional)</label>
+                                        <div class="document-upload-box">
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.FcpsImage) ? "display:none;" : "")">
+                                                <div class="uploaded-preview">
+                                                    <img src="@verificationForm.FcpsImage" alt="FCPS Certificate" class="img-thumbnail" style="max-height: 150px;" />
+                                                    @if ((!doctorForm.IsSubmittedForVerification && !doctorForm.IsVerified) || isEditingLockedFields)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="ClearFcps">
+                                                            <i class="bi bi-trash"></i> Remove
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.FcpsImage) ? "" : "display:none;")">
+                                                <InputFile OnChange="OnFcpsUpload" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="form-control" />
+                                                <small class="text-muted">Upload FCPS certificate if applicable (PNG, JPEG)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- PMDC License Document -->
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">PMDC License *</label>
+                                        <div class="document-upload-box">
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.LicenseImage) ? "display:none;" : "")">
+                                                <div class="uploaded-preview">
+                                                    <img src="@verificationForm.LicenseImage" alt="PMDC License" class="img-thumbnail" style="max-height: 150px;" />
+                                                    @if ((!doctorForm.IsSubmittedForVerification && !doctorForm.IsVerified) || isEditingLockedFields)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="ClearLicense">
+                                                            <i class="bi bi-trash"></i> Remove
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div style="@(string.IsNullOrEmpty(verificationForm.LicenseImage) ? "" : "display:none;")">
+                                                <InputFile OnChange="OnLicenseUpload" accept=".png,.jpg,.jpeg,image/png,image/jpeg" class="form-control" />
+                                                <small class="text-muted">Upload scanned copy of PMDC license (PNG, JPEG)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                @if (!doctorForm.IsVerified && !doctorForm.IsSubmittedForVerification && !doctorForm.IsReVerificationRequired)
+                                {
+                                    <button type="button" class="btn btn-success btn-save" @onclick="SubmitVerification" disabled="@isSubmittingVerification">
+                                        @if (isSubmittingVerification)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        }
+                                        <i class="bi bi-patch-check me-2"></i>Apply for Verification
+                                    </button>
+                                }
+                                else if (doctorForm.IsSubmittedForVerification)
+                                {
+                                    <button type="button" class="btn btn-warning" disabled>
+                                        <i class="bi bi-clock me-2"></i>Pending Approval...
+                                    </button>
+                                }
+                                else if (doctorForm.IsReVerificationRequired)
+                                {
+                                    <button type="button" class="btn btn-warning" disabled>
+                                        <i class="bi bi-clock me-2"></i>Re-verification Pending...
+                                    </button>
+                                }
+                                else if (doctorForm.IsVerified && isEditingLockedFields)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="() => isEditingLockedFields = false">
+                                        Cancel
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-save" @onclick="SubmitReVerification" disabled="@isSubmittingVerification">
+                                        @if (isSubmittingVerification)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        }
+                                        <i class="bi bi-arrow-repeat me-2"></i>Submit for Re-Verification
+                                    </button>
+                                }
+                                else if (doctorForm.IsVerified)
+                                {
+                                    <button type="button" class="btn btn-success" disabled>
+                                        <i class="bi bi-check-circle me-2"></i>Verified ✓
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Security Tab -->
+                    @if (activeTab == "security")
+                    {
+                        <div class="settings-card p-4">
+                            <h5 class="section-title">Security Settings</h5>
+                            <p class="section-desc">Manage your account security and privacy</p>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">Current Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-lock text-success"></i>
+                                    </span>
+                                    <input type="password" @bind="currentPassword" class="form-control form-control-modern border-start-0" placeholder="Enter current password" />
+                                </div>
+                                <div class="mt-2">
+                                    <a href="javascript:void(0)" @onclick="SendForgotPasswordEmail" class="text-decoration-none small">
+                                        <i class="bi bi-question-circle me-1"></i>Forgot your current password?
+                                    </a>
+                                </div>
+                            </div>
+
+                                <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">New Password</label>
+                                    <input type="password" @bind="newPassword" @oninput="OnProfileNewPasswordInput" class="@($"form-control form-control-modern {psPasswordClass}")" placeholder="Enter new password" />
+                                    <ValidationMessage For="@(() => newPassword)" class="text-danger small" />
+                                    <div class="mt-2">
+                                        <small class="d-block mb-1 text-muted">Password must meet all 5 of the following:</small>
+                                        <div class="password-criteria">
+                                            <span class="criteria-item @(psHasMinLength ? "success" : "danger")">
+                                                <i class="bi @(psHasMinLength ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                                Min 8
+                                            </span>
+                                            <span class="criteria-item @(psHasLowercase ? "success" : "danger")">
+                                                <i class="bi @(psHasLowercase ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                                Lowercase
+                                            </span>
+                                            <span class="criteria-item @(psHasUppercase ? "success" : "danger")">
+                                                <i class="bi @(psHasUppercase ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                                Uppercase
+                                            </span>
+                                            <span class="criteria-item @(psHasDigit ? "success" : "danger")">
+                                                <i class="bi @(psHasDigit ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                                Number
+                                            </span>
+                                            <span class="criteria-item @(psHasSpecial ? "success" : "danger")">
+                                                <i class="bi @(psHasSpecial ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                                Special
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Confirm New Password</label>
+                                    <input type="password" @bind="confirmPassword" class="form-control form-control-modern" placeholder="Confirm new password" />
+                                    <ValidationMessage For="@(() => confirmPassword)" class="text-danger small" />
+                                </div>
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(passwordError))
+                            {
+                                <div class="alert alert-danger py-2 mb-3">
+                                    <i class="bi bi-exclamation-circle me-2"></i>@passwordError
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(passwordSuccess))
+                            {
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="bi bi-check-circle me-2"></i>@passwordSuccess
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-success btn-save" @onclick="UpdatePassword" disabled="@isUpdatingPassword">
+                                    @if (isUpdatingPassword)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    <i class="bi bi-key me-2"></i>Update Password
+                                </button>
+                            </div>
+
+                            
+                        </div>
+                    }
+
+
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private EditContext? profileEditContext;
+    private NetcodeHubToast? ToastComponent;
+    private DoctorFormModel doctorForm = new();
+    private VerificationFormModel verificationForm = new();
+    private bool isLoading = true;
+    private string activeTab = "profile";
+    private bool isSubmittingVerification = false;
+    private bool isEditingLockedFields = false;
+    private const string CnicValidationUrl = "https://n8n-15vd.onrender.com/webhook/3b3f56dd-c197-4e53-8140-593ad66e725e";
+
+    // PMDC lookup state (auto-fetch on license blur)
+    private bool isPmdcLookupLoading = false;
+    private bool pmdcLookupTried = false;
+    private bool pmdcIsVerified = false;
+    private string lastPmdcLookupLicense = string.Empty;
+    private string pmdcLookupMessage = string.Empty;
+    private string pmdcDoctorName = string.Empty;
+    private string pmdcQualification = string.Empty;
+    private string pmdcStatus = string.Empty;
+    private string pmdcDateOfRegistration = string.Empty;
+    
+    // Password change fields
+    private string currentPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string passwordError = string.Empty;
+    private string passwordSuccess = string.Empty;
+    private bool isUpdatingPassword = false;
+
+    // Password strength flags for profile security
+    bool psHasMinLength = false;
+    bool psHasLowercase = false;
+    bool psHasUppercase = false;
+    bool psHasDigit = false;
+    bool psHasSpecial = false;
+    string psPasswordClass = string.Empty;
+
+    // Document upload files
+    private IBrowserFile? cnicFrontFile;
+    private IBrowserFile? cnicBackFile;
+    private IBrowserFile? mbbsFile;
+    private IBrowserFile? fcpsFile;
+    private IBrowserFile? licenseFile;
+    
+    // Document upload bytes (to avoid JS interop issues)
+    private byte[]? cnicFrontBytes;
+    private byte[]? cnicBackBytes;
+    private byte[]? mbbsBytes;
+    private byte[]? fcpsBytes;
+    private byte[]? licenseBytes;
+
+    // SignalR for verification notifications
+    private string? _doctorId;
+    private bool _hubSubscribed;
+
+    private TimeOnly startTime = new TimeOnly(9, 0);
+    private TimeOnly endTime   = new TimeOnly(17, 0);
+    
+    private DateTime availabilityDate = DateTime.Today;
+    private HashSet<DateTime> availabilityDates = new();
+    private Dictionary<DateTime, DayTimeRange> dailyAvailability = new();
+    private DateTime? selectedDate;
+    private string selectedStartTimeString = "09:00";
+    private string selectedEndTimeString   = "17:00";
+    private static readonly TimeOnly minDayTime = new TimeOnly(8, 0);
+    private static readonly TimeOnly maxDayTime = new TimeOnly(20, 0);
+    private string minDayTimeString => minDayTime.ToString("HH:mm");
+    private string maxDayTimeString => maxDayTime.ToString("HH:mm");
+    
+    private InputFile? fileInput;
+    private IBrowserFile? uploadedImageFile;
+    private byte[]? uploadedImageBytes;
+    private string? uploadedImageContentType;
+    private string? uploadedImageName;
+    
+    // Subscription check
+    private DoctorProfile? subscriptionProfile;
+    private bool isSubscriptionActive = false;
+    private bool isProcessingCheckout = false;
+
+    bool isVisible = false;
+
+    protected override void OnInitialized()
+    {
+        // ensure EditContext is ready before first render
+        profileEditContext = new EditContext(doctorForm);
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            if (client.DefaultRequestHeaders.Authorization == null)
+            {
+                // Not logged in - redirect to login
+                Navigation.NavigateTo("/", true);
+                return;
+            }
+
+            await CheckSubscriptionStatus();
+            await LoadProfile();
+            await HubClient.StartAsync();
+
+            if (!_hubSubscribed)
+            {
+                _hubSubscribed = true;
+                HubClient.VerificationStatusChanged += HandleVerificationStatusChanged;
+            }
+        }
+    }
+
+@* M-10 CHECK SUBSCRIPTION STATUS *@
+    private async Task CheckSubscriptionStatus()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync("api/Doctor/get/profile");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<DoctorProfileResponse>();
+                if (apiResponse != null && apiResponse.IsSuccess && apiResponse.Doctor != null)
+                {
+                    subscriptionProfile = apiResponse.Doctor;
+                    
+                    // Check actual subscription status from Stripe API
+                    var subResponse = await client.GetAsync("api/Stripe/doctor/subscription-status");
+                    if (subResponse.IsSuccessStatusCode)
+                    {
+                        var subResult = await subResponse.Content.ReadFromJsonAsync<SubscriptionStatusResult>();
+                        isSubscriptionActive = subResult?.IsSubscribed ?? false;
+                    }
+                    
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error checking subscription: {ex.Message}");
+        }
+    }
+
+    private class SubscriptionStatusResult
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("isSubscribed")]
+        public bool IsSubscribed { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("subscriptionStatus")]
+        public string? SubscriptionStatus { get; set; }
+    }
+
+@* M-10 START STRIPE CHECKOUT *@
+    private async Task StartStripeCheckout()
+    {
+        try
+        {
+            isProcessingCheckout = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var baseUrl = Navigation.BaseUri.TrimEnd('/');
+            
+            var checkoutRequest = new
+            {
+                doctorId = _doctorId,
+                successUrl = $"{baseUrl}/payment-success",
+                cancelUrl = $"{baseUrl}/profile-setup"
+            };
+
+            var response = await client.PostAsJsonAsync("api/Stripe/doctor/create-checkout-session", checkoutRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CheckoutResponse>();
+                if (result?.IsSuccess == true && !string.IsNullOrEmpty(result.SessionUrl))
+                {
+                    Navigation.NavigateTo(result.SessionUrl, true);
+                }
+                else
+                {
+                    await ToastComponent!.ShowErrorToast("Error", result?.Message ?? "Failed to create checkout session");
+                }
+            }
+            else
+            {
+                await ToastComponent!.ShowErrorToast("Error", "Failed to create checkout session");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ToastComponent!.ShowErrorToast("Error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingCheckout = false;
+            StateHasChanged();
+        }
+    }
+
+    private class CheckoutResponse
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("isSuccess")]
+        public bool IsSuccess { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("sessionUrl")]
+        public string? SessionUrl { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public string? Message { get; set; }
+    }
+
+    private async Task HandleVerificationStatusChanged(VerificationStatusNotification notice)
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadProfile();
+            StateHasChanged();
+        });
+    }
+
+    private void OnProfileNewPasswordInput(ChangeEventArgs e)
+    {
+        var val = e?.Value?.ToString() ?? string.Empty;
+        newPassword = val;
+        UpdateProfilePasswordCriteria(val);
+    }
+
+    private void UpdateProfilePasswordCriteria(string val)
+    {
+        psHasMinLength = val.Length >= 8;
+        psHasLowercase = System.Text.RegularExpressions.Regex.IsMatch(val, "[a-z]");
+        psHasUppercase = System.Text.RegularExpressions.Regex.IsMatch(val, "[A-Z]");
+        psHasDigit = System.Text.RegularExpressions.Regex.IsMatch(val, "[0-9]");
+        psHasSpecial = System.Text.RegularExpressions.Regex.IsMatch(val, "[\\W_]");
+        var satisfied = new []{psHasMinLength, psHasLowercase, psHasUppercase, psHasDigit, psHasSpecial}.Count(b => b);
+        if (satisfied >= 5) psPasswordClass = "password-input-strong";
+        else if (satisfied == 0) psPasswordClass = string.Empty;
+        else psPasswordClass = "password-input-weak";
+        StateHasChanged();
+    }
+
+    @* M-1 USED FOR PASSWORD UPDATION EMAIL *@
+
+    private async Task UpdatePassword()
+    {
+        passwordError = string.Empty;
+        passwordSuccess = string.Empty;
+        
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(currentPassword))
+        {
+            passwordError = "Current password is required";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            passwordError = "New password is required";
+            return;
+        }
+        // Ensure criteria reflect current password (covers paste/autofill)
+        UpdateProfilePasswordCriteria(newPassword);
+        var satisfied = new []{psHasMinLength, psHasLowercase, psHasUppercase, psHasDigit, psHasSpecial}.Count(b => b);
+        if (satisfied < 5)
+        {
+            passwordError = "Please choose a stronger password (must satisfy all 5 criteria).";
+            return;
+        }
+        if (newPassword.Length < 8)
+        {
+            passwordError = "New password must be at least 8 characters";
+            return;
+        }
+        if (newPassword != confirmPassword)
+        {
+            passwordError = "New passwords do not match";
+            return;
+        }
+        
+        try
+        {
+            isUpdatingPassword = true;
+            StateHasChanged();
+            
+            var client = await ApiClient.SetAuthorizedHeader();
+            var request = new { PreviousPassword = currentPassword, NewPassword = newPassword };
+            var response = await client.PostAsJsonAsync("/api/auth/reset-password", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                if (result?.IsSuccess == true)
+                {
+                    passwordSuccess = "Password updated successfully!";
+                    await ToastComponent!.ShowSuccessToast("Success", "Password updated successfully!");
+                    // Clear the fields
+                    currentPassword = string.Empty;
+                    newPassword = string.Empty;
+                    confirmPassword = string.Empty;
+                }
+                else
+                {
+                    passwordError = result?.Message ?? "Failed to update password";
+                }
+            }
+            else
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                passwordError = result?.Message ?? "Current password is incorrect";
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordError = "An error occurred. Please try again.";
+            Console.WriteLine($"Password update error: {ex.Message}");
+        }
+        finally
+        {
+            isUpdatingPassword = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task SendForgotPasswordEmail()
+    {
+        try
+        {
+            passwordError = string.Empty;
+            passwordSuccess = string.Empty;
+            
+            // Get user email from session storage
+            var currentUserResult = await SessionStorage.GetAsync<LoginUser>("currentUser");
+            var userEmail = currentUserResult.Success ? currentUserResult.Value?.Email : null;
+            
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                passwordError = "Unable to get your email address. Please try again later.";
+                return;
+            }
+            
+            var client = HttpClientFactory.CreateClient("API");
+            var request = new { email = userEmail, profileType = "doctor" };
+            var response = await client.PostAsJsonAsync("/api/auth/forgot-password", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                passwordSuccess = result?.Message ?? "Password reset link has been sent to your email!";
+                await ToastComponent!.ShowSuccessToast("Email Sent", "Check your email for password reset instructions.");
+            }
+            else
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                passwordError = result?.Message ?? "Failed to send reset email. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordError = "An error occurred. Please try again.";
+            Console.WriteLine($"Forgot password error: {ex.Message}");
+        }
+        StateHasChanged();
+    }
+    
+    private class ApiResponse
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("isSuccess")]
+        public bool IsSuccess { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public string? Message { get; set; }
+    }
+
+    private sealed class PmdcLookupApiResponse
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("isSuccess")]
+        public bool IsSuccess { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("isVerified")]
+        public bool IsVerified { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public string Message { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("doctorName")]
+        public string DoctorName { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fatherName")]
+        public string FatherName { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("registrationNo")]
+        public string RegistrationNo { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("qualification")]
+        public string Qualification { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dateOfRegistration")]
+        public string DateOfRegistration { get; set; } = string.Empty;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        HubClient.VerificationStatusChanged -= HandleVerificationStatusChanged;
+        return ValueTask.CompletedTask;
+    }
+
+@* M-2 CALLING THE API TO GETTING DOCTOR PROFILE *@
+    private async Task LoadProfile()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            if (client.DefaultRequestHeaders.Authorization == null)
+            {
+                ToastComponent?.ShowDangerToast("Unauthorized", "Please login again.");
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+            var httpResponse = await client.GetAsync("api/Doctor/get/profile");
+
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await httpResponse.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Fetch Failed", $"Status: {httpResponse.StatusCode}");
+                return;
+            }
+
+            var payload = await httpResponse.Content.ReadFromJsonAsync<DoctorResponseDto>();
+
+            if (payload?.IsSuccess != true)
+            {
+                ToastComponent?.ShowDangerToast("Fetch Failed", payload?.Message ?? "Failed to fetch profile.");
+                return;
+            }
+
+            var d = payload.doctor;
+            if (d == null)
+            {
+                ToastComponent?.ShowDangerToast("Fetch Failed", "Doctor profile data is missing.");
+                return;
+            }
+
+            // Store doctor ID for SignalR notifications
+            _doctorId = d.Id;
+            await HubClient.SetDoctorIdAsync(_doctorId);
+            
+            doctorForm.IsVerified     = d.IsVerified;
+            doctorForm.IsSubmittedForVerification = d.IsSubmittedForVerification;
+            doctorForm.IsReVerificationRequired = d.IsReVerificationRequired;
+            doctorForm.IsLicenseInfoLocked = d.IsLicenseInfoLocked;
+            doctorForm.LicenceNumber  = d.LicenceNumber ?? "";
+            doctorForm.Speciality     = d.Speciality ?? "";
+            doctorForm.IsAvailable    = d.IsAvailable;
+            doctorForm.ClinicLocation = d.ClinicInfo?.Location ?? "";
+            doctorForm.Experience     = NormalizeExperience(d.Experience);
+            doctorForm.Fee            = ParseIntSafe(d.Fee);
+            doctorForm.Specialization = d.Specialization ?? "";
+            doctorForm.ImageUrl       = d.ImageUrl ?? "";
+            doctorForm.RenewalDate    = d.RenewalDate == default ? DateTime.Now : d.RenewalDate;
+
+            // Load verification documents into verificationForm
+            verificationForm.LicenceNumber = d.LicenceNumber ?? "";
+            verificationForm.Specialization = d.Specialization ?? "";
+            verificationForm.CnicFrontImage = d.CnicFrontImage ?? "";
+            verificationForm.CnicBackImage = d.CnicBackImage ?? "";
+            verificationForm.MbbsImage = d.MbbsImage ?? "";
+            verificationForm.FcpsImage = d.FcpsImage ?? "";
+            verificationForm.LicenseImage = d.LicenseImage ?? "";
+            ClearPmdcLookupState();
+            lastPmdcLookupLicense = doctorForm.LicenceNumber ?? string.Empty;
+            
+            
+            DateTime startDateTime = d.AvailableTimeMorning?.StartTime == default 
+                ? DateTime.Today.AddHours(9) 
+                : d.AvailableTimeMorning?.StartTime ?? DateTime.Today.AddHours(9);
+            
+            DateTime endDateTime = d.AvailableTimeMorning?.EndTime == default 
+                ? DateTime.Today.AddHours(17) 
+                : d.AvailableTimeMorning?.EndTime ?? DateTime.Today.AddHours(17);
+
+            startTime = TimeOnly.FromTimeSpan(startDateTime.TimeOfDay);
+            endTime   = TimeOnly.FromTimeSpan(endDateTime.TimeOfDay);
+            
+            availabilityDate = d.AvailabilityDate == default ? DateTime.Today : d.AvailabilityDate;
+
+            InitializeAvailabilityDates();
+            
+            if (d.AvailabilityDates?.Any() == true)
+            {
+                availabilityDates.Clear();
+                foreach (var date in d.AvailabilityDates)
+                {
+                    availabilityDates.Add(date.Date);
+                }
+            }
+
+            if (d.DailyAvailabilities != null && d.DailyAvailabilities.Any())
+            {
+                dailyAvailability.Clear();
+                foreach (var day in d.DailyAvailabilities)
+                {
+                    // Use literal time directly without timezone conversion
+                    var dateLocal = day.Date;
+                    var startLocal = day.StartTime;
+                    var endLocal = day.EndTime;
+                    
+                    var dateOnly = dateLocal.Date;
+                    var st = TimeOnly.FromTimeSpan(startLocal.TimeOfDay);
+                    var et = TimeOnly.FromTimeSpan(endLocal.TimeOfDay);
+                    dailyAvailability[dateOnly] = new DayTimeRange(st, et);
+                    availabilityDates.Add(dateOnly);
+                    
+                    Console.WriteLine($"Loaded availability: Date={dateOnly:yyyy-MM-dd}, Start={st}, End={et}");
+                }
+            }
+
+            ToastComponent?.ShowSuccessToast("Loaded", "Profile fetched successfully.");
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+@* M-2 CALLING THE API TO UPDATE DOCTOR PROFILE *@
+    private async Task SubmitProfile()
+    {
+        try
+        {
+            if (isEditingLockedFields && !doctorForm.IsSubmittedForVerification)
+            {
+                bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "You have edited PMDC-verified fields. This will require re-verification by the admin. Do you want to apply for re-verification and save your profile changes?");
+                if (!confirm)
+                {
+                    return;
+                }
+
+                var revClient = await ApiClient.SetAuthorizedHeader();
+                var requestBody = new
+                {
+                    licence_number = doctorForm.LicenceNumber,
+                    specialization = doctorForm.Specialization,
+                    reason = "Updating PMDC license information from basic profile"
+                };
+                
+                var responseRev = await revClient.PostAsJsonAsync("api/DoctorVerification/submit-reverification", requestBody);
+                if (responseRev.IsSuccessStatusCode)
+                {
+                    doctorForm.IsReVerificationRequired = true;
+                    doctorForm.IsVerified = false;
+                    isEditingLockedFields = false;
+                    ToastComponent?.ShowSuccessToast("Re-verification", "Re-verification requested successfully.");
+                    
+                    verificationForm.LicenceNumber = doctorForm.LicenceNumber ?? "";
+                    verificationForm.Specialization = doctorForm.Specialization ?? "";
+                }
+                else
+                {
+                    var error = await responseRev.Content.ReadAsStringAsync();
+                    ToastComponent?.ShowDangerToast("Failed", $"Could not submit re-verification request: {error}");
+                    return;
+                }
+            }
+
+            // validate clinic address client-side
+            if (string.IsNullOrWhiteSpace(doctorForm.ClinicLocation) || doctorForm.ClinicLocation.Trim().Length < 10 || doctorForm.ClinicLocation.Trim().Length > 150)
+            {
+                ToastComponent?.ShowDangerToast("Error", "Please enter a valid clinic address (10-150 characters). ");
+                return;
+            }
+
+            // Licence number length check (exactly 7 chars)
+            if (string.IsNullOrWhiteSpace(doctorForm.LicenceNumber) || doctorForm.LicenceNumber.Trim().Length != 7)
+            {
+                ToastComponent?.ShowDangerToast("Error", "Licence number must be exactly 7 characters.");
+                return;
+            }
+
+            // Experience validation: if "Other" enforce ExperienceOtherYears between 1 and 30
+            if (doctorForm.Experience == "Other")
+            {
+                if (!doctorForm.ExperienceOtherYears.HasValue || doctorForm.ExperienceOtherYears.Value < 1 || doctorForm.ExperienceOtherYears.Value > 30)
+                {
+                    ToastComponent?.ShowDangerToast("Error", "Please enter experience between 1 and 30 years.");
+                    return;
+                }
+            }
+            else
+            {
+                // if a numeric experience string was chosen, ensure it's within allowed bounds
+                if (!string.IsNullOrWhiteSpace(doctorForm.Experience) && int.TryParse(new string(doctorForm.Experience.Where(char.IsDigit).ToArray()), out var expVal))
+                {
+                    if (expVal <= 0 || expVal > 30)
+                    {
+                        ToastComponent?.ShowDangerToast("Error", "Experience must be between 1 and 30 years.");
+                        return;
+                    }
+                }
+            }
+
+            // Consultation fee maximum
+            if (doctorForm.Fee > 5000)
+            {
+                ToastComponent?.ShowDangerToast("Validation Error", "Consultation fee cannot exceed 5000 PKR.");
+                return;
+            }
+
+            isVisible = true;
+            StateHasChanged();
+            
+            var client = await ApiClient.SetAuthorizedHeader();
+            if (client.DefaultRequestHeaders.Authorization == null)
+            {
+                ToastComponent?.ShowDangerToast("Unauthorized", "Please login again.");
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
+            var content = new MultipartFormDataContent();
+
+            content.Add(new StringContent(doctorForm.LicenceNumber ?? string.Empty), "LicenceNumber");
+            content.Add(new StringContent(doctorForm.Speciality ?? string.Empty), "Speciality");
+            var experienceValue = doctorForm.Experience == "Other"
+                ? (doctorForm.ExperienceOtherYears?.ToString() ?? "0")
+                : doctorForm.Experience;
+            content.Add(new StringContent(experienceValue ?? string.Empty), "Experience");
+            content.Add(new StringContent(doctorForm.Fee.ToString(System.Globalization.CultureInfo.InvariantCulture)), "Fee");
+            content.Add(new StringContent(doctorForm.Specialization ?? string.Empty), "Specialization");
+            content.Add(new StringContent(doctorForm.IsAvailable.ToString().ToLower()), "IsAvailable");
+            content.Add(new StringContent(doctorForm.RenewalDate.ToString("o")), "RenewalDate");
+
+            content.Add(new StringContent(doctorForm.ClinicLocation ?? string.Empty), "ClinicInfo.Location");
+
+            var startDateTime = CreateDateTimeFromTimeSpan(startTime);
+            var endDateTime   = CreateDateTimeFromTimeSpan(endTime);
+            content.Add(new StringContent(startDateTime.ToString("s")), "AvailableTimeMorning.StartTime");
+            content.Add(new StringContent(endDateTime.ToString("s")), "AvailableTimeMorning.EndTime");
+
+            int i = 0;
+            foreach (var kv in dailyAvailability.OrderBy(k => k.Key))
+            {
+                var dateOnly = kv.Key.Date;
+                var st = dateOnly.Add(kv.Value.Start.ToTimeSpan());
+                var et = dateOnly.Add(kv.Value.End.ToTimeSpan());
+                
+                // Create date at noon (prevents timezone date shifts)
+                var dateUtc = new DateTime(dateOnly.Year, dateOnly.Month, dateOnly.Day, 12, 0, 0, DateTimeKind.Unspecified);
+                
+                // Use literal slot times
+                var stUnspecified = DateTime.SpecifyKind(st, DateTimeKind.Unspecified);
+                var etUnspecified = DateTime.SpecifyKind(et, DateTimeKind.Unspecified);
+                
+                content.Add(new StringContent(dateUtc.ToString("s")), $"DailyAvailabilities[{i}].Date");
+                content.Add(new StringContent(stUnspecified.ToString("s")), $"DailyAvailabilities[{i}].StartTime");
+                content.Add(new StringContent(etUnspecified.ToString("s")), $"DailyAvailabilities[{i}].EndTime");
+                i++;
+            }
+            Console.WriteLine($"=== Finished preparing availabilities ===");
+
+            // Use stored bytes instead of opening stream again (avoids JS interop issues)
+            if (uploadedImageBytes != null && uploadedImageBytes.Length > 0)
+            {
+                var streamContent = new ByteArrayContent(uploadedImageBytes);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(uploadedImageContentType ?? "image/jpeg");
+                content.Add(streamContent, "image_url", uploadedImageName ?? "profile.jpg");
+            }
+
+            var resp = await client.PostAsync("api/Doctor/profile/update", content);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                // Reload the profile to reflect saved data
+                await LoadProfile();
+
+                if (activeTab == "schedule")
+                {
+                    ToastComponent?.ShowSuccessToast("Saved", "Schedule saved successfully!");
+                }
+                else
+                {
+                    ToastComponent?.ShowSuccessToast("Saved", "Profile updated successfully!");
+                    // Navigate to the Verification tab after saving clinic info
+                    activeTab = "verification";
+                }
+            }
+            else
+            {
+                var errorContent = await resp.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Save Failed", $"Status: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+        finally
+        {
+            isVisible = false;
+            StateHasChanged();
+        }
+    }
+
+    // Verification Helper Methods
+    private string GetVerificationAlertClass()
+    {
+        if (doctorForm.IsVerified && !doctorForm.IsReVerificationRequired)
+            return "alert-success";
+        if (doctorForm.IsSubmittedForVerification || doctorForm.IsReVerificationRequired)
+            return "alert-warning";
+        return "alert-info";
+    }
+
+    private string GetVerificationIcon()
+    {
+        if (doctorForm.IsVerified && !doctorForm.IsReVerificationRequired)
+            return "bi-patch-check-fill";
+        if (doctorForm.IsSubmittedForVerification || doctorForm.IsReVerificationRequired)
+            return "bi-clock-fill";
+        return "bi-info-circle-fill";
+    }
+
+    private string GetVerificationStatusTitle()
+    {
+        if (doctorForm.IsVerified && !doctorForm.IsReVerificationRequired)
+            return "Verified Doctor";
+        if (doctorForm.IsReVerificationRequired)
+            return "Re-verification Pending";
+        if (doctorForm.IsSubmittedForVerification)
+            return "Verification Pending";
+        return "Verification Required";
+    }
+
+    private string GetVerificationStatusMessage()
+    {
+        if (doctorForm.IsVerified && !doctorForm.IsReVerificationRequired)
+            return "Your credentials are verified. You have full access to AI Agent features.";
+        if (doctorForm.IsReVerificationRequired)
+            return "Your re-verification request is being reviewed. AI Agent access is temporarily suspended.";
+        if (doctorForm.IsSubmittedForVerification)
+            return "Your application is under review. You will be notified once approved.";
+        return "Please upload your documents and apply for verification to unlock AI Agent features.";
+    }
+
+    private async Task OnLicenceNumberBlur(FocusEventArgs _)
+    {
+        await LookupPmdcByLicence((verificationForm.LicenceNumber ?? string.Empty).Trim());
+    }
+
+    private async Task OnProfileLicenceNumberBlur(FocusEventArgs _)
+    {
+        var licenceNumber = (doctorForm.LicenceNumber ?? string.Empty).Trim();
+        await LookupPmdcByLicence(licenceNumber, applyProfileAutoFill: true);
+    }
+
+    private async Task ManualPmdcRecheck()
+    {
+        await LookupPmdcByLicence((verificationForm.LicenceNumber ?? string.Empty).Trim(), force: true);
+    }
+
+    private async Task LookupPmdcByLicence(string licenceNumber, bool force = false, bool applyProfileAutoFill = false)
+    {
+        if (applyProfileAutoFill)
+        {
+            doctorForm.LicenceNumber = licenceNumber;
+            verificationForm.LicenceNumber = licenceNumber;
+        }
+
+        if (string.IsNullOrWhiteSpace(licenceNumber))
+        {
+            ClearPmdcLookupState();
+            return;
+        }
+
+        if (licenceNumber.Length != 7)
+        {
+            pmdcLookupTried = true;
+            pmdcIsVerified = false;
+            pmdcLookupMessage = "Licence number must be exactly 7 characters.";
+            pmdcDoctorName = string.Empty;
+            pmdcQualification = string.Empty;
+            pmdcStatus = string.Empty;
+            pmdcDateOfRegistration = string.Empty;
+            return;
+        }
+
+        if (isPmdcLookupLoading)
+        {
+            return;
+        }
+
+        if (!force && string.Equals(lastPmdcLookupLicense, licenceNumber, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            isPmdcLookupLoading = true;
+            pmdcLookupMessage = string.Empty;
+            pmdcLookupTried = false;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/DoctorVerification/pmdc-lookup?licenceNumber={Uri.EscapeDataString(licenceNumber)}");
+            lastPmdcLookupLicense = licenceNumber;
+
+            var payload = await response.Content.ReadFromJsonAsync<PmdcLookupApiResponse>();
+
+            if (payload != null)
+            {
+                pmdcLookupTried = true;
+                pmdcIsVerified = payload.IsVerified;
+                pmdcLookupMessage = payload.Message;
+                pmdcDoctorName = payload.DoctorName;
+                pmdcQualification = payload.Qualification;
+                pmdcStatus = payload.Status;
+                pmdcDateOfRegistration = payload.DateOfRegistration;
+
+                ApplyVerificationAutoFillFromPmdc(payload);
+
+                if (applyProfileAutoFill)
+                {
+                    ApplyProfileAutoFillFromPmdc(payload);
+                }
+            }
+            else
+            {
+                pmdcLookupTried = true;
+                pmdcIsVerified = false;
+                pmdcLookupMessage = response.IsSuccessStatusCode
+                    ? "Unable to parse PMDC response."
+                    : $"PMDC lookup failed: {(int)response.StatusCode}";
+                pmdcDoctorName = string.Empty;
+                pmdcQualification = string.Empty;
+                pmdcStatus = string.Empty;
+                pmdcDateOfRegistration = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            pmdcLookupTried = true;
+            pmdcIsVerified = false;
+            pmdcLookupMessage = $"PMDC lookup failed: {ex.Message}";
+            pmdcDoctorName = string.Empty;
+            pmdcQualification = string.Empty;
+            pmdcStatus = string.Empty;
+            pmdcDateOfRegistration = string.Empty;
+        }
+        finally
+        {
+            isPmdcLookupLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ApplyProfileAutoFillFromPmdc(PmdcLookupApiResponse payload)
+    {
+        var normalizedQualification = (payload.Qualification ?? string.Empty).ToUpperInvariant();
+        doctorForm.Specialization = InferSpecialization(normalizedQualification);
+        doctorForm.Speciality = InferSpeciality(normalizedQualification);
+
+        var years = InferExperienceYears(payload.DateOfRegistration);
+        if (years.HasValue)
+        {
+            if (years.Value <= 5)
+            {
+                doctorForm.Experience = years.Value.ToString();
+                doctorForm.ExperienceOtherYears = null;
+            }
+            else
+            {
+                doctorForm.Experience = "Other";
+                doctorForm.ExperienceOtherYears = years.Value;
+            }
+        }
+
+        verificationForm.Specialization = doctorForm.Specialization;
+
+        profileEditContext?.Validate();
+    }
+
+    private void ApplyVerificationAutoFillFromPmdc(PmdcLookupApiResponse payload)
+    {
+        var inferredSpecialization = InferSpecialization(payload.Qualification ?? string.Empty);
+        if (!string.IsNullOrWhiteSpace(inferredSpecialization))
+        {
+            verificationForm.Specialization = inferredSpecialization;
+        }
+    }
+
+    private void SyncProfileFieldsFromVerification()
+    {
+        doctorForm.LicenceNumber = verificationForm.LicenceNumber;
+
+        if (!string.IsNullOrWhiteSpace(verificationForm.Specialization))
+        {
+            doctorForm.Specialization = verificationForm.Specialization;
+        }
+
+        if (!string.IsNullOrWhiteSpace(pmdcQualification))
+        {
+            doctorForm.Speciality = InferSpeciality(pmdcQualification);
+
+            if (string.IsNullOrWhiteSpace(doctorForm.Specialization))
+            {
+                var inferred = InferSpecialization(pmdcQualification);
+                if (!string.IsNullOrWhiteSpace(inferred))
+                {
+                    doctorForm.Specialization = inferred;
+                }
+            }
+        }
+
+        var years = InferExperienceYears(pmdcDateOfRegistration);
+        if (years.HasValue)
+        {
+            if (years.Value <= 5)
+            {
+                doctorForm.Experience = years.Value.ToString();
+                doctorForm.ExperienceOtherYears = null;
+            }
+            else
+            {
+                doctorForm.Experience = "Other";
+                doctorForm.ExperienceOtherYears = years.Value;
+            }
+        }
+
+        profileEditContext?.Validate();
+    }
+
+    private static string InferSpecialization(string qualification)
+    {
+        if (qualification.Contains("FCPS", StringComparison.OrdinalIgnoreCase)) return "FCPS";
+        if (qualification.Contains("MS", StringComparison.OrdinalIgnoreCase)) return "MS (Ophthalmology)";
+        if (qualification.Contains("MD", StringComparison.OrdinalIgnoreCase)) return "MD";
+        if (qualification.Contains("MBBS", StringComparison.OrdinalIgnoreCase)) return "MBBS";
+        return string.Empty;
+    }
+
+    private static string InferSpeciality(string qualification)
+    {
+        if (qualification.Contains("OPTOMET", StringComparison.OrdinalIgnoreCase)) return "Optometrist";
+        if (qualification.Contains("OPTICIAN", StringComparison.OrdinalIgnoreCase)) return "Optician";
+        if (qualification.Contains("OCULARIST", StringComparison.OrdinalIgnoreCase)) return "Ocularist";
+        return "Ophthalmologist";
+    }
+
+    private static int? InferExperienceYears(string? dateOfRegistration)
+    {
+        if (string.IsNullOrWhiteSpace(dateOfRegistration))
+        {
+            return null;
+        }
+
+        if (!DateTime.TryParse(dateOfRegistration, out var parsedDate))
+        {
+            return null;
+        }
+
+        var years = DateTime.UtcNow.Year - parsedDate.Year;
+        if (parsedDate.Date > DateTime.UtcNow.AddYears(-years))
+        {
+            years--;
+        }
+
+        return Math.Clamp(years, 1, 30);
+    }
+
+    private void ClearPmdcLookupState()
+    {
+        pmdcLookupTried = false;
+        pmdcIsVerified = false;
+        pmdcLookupMessage = string.Empty;
+        pmdcDoctorName = string.Empty;
+        pmdcQualification = string.Empty;
+        pmdcStatus = string.Empty;
+        pmdcDateOfRegistration = string.Empty;
+    }
+
+    private async Task OnDocumentUpload(InputFileChangeEventArgs e, string documentType)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                if (file.Size > 5 * 1024 * 1024)
+                {
+                    ToastComponent?.ShowDangerToast("Error", "File size must be less than 5MB");
+                    return;
+                }
+
+                // Allow only PNG, JPEG images
+                var allowedTypes = new[] { "image/png", "image/jpeg", "image/jpg" };
+                var allowedExtensions = new[] { ".png", ".jpg", ".jpeg" };
+                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+                
+                if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()) && !allowedExtensions.Contains(extension))
+                {
+                    ToastComponent?.ShowDangerToast("Error", "Only PNG and JPEG image files are allowed");
+                    return;
+                }
+
+                // Read file bytes immediately to avoid JS interop issues later
+                using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var fileBytes = ms.ToArray();
+                
+                var base64 = Convert.ToBase64String(fileBytes);
+                var imageUrl = $"data:{file.ContentType};base64,{base64}";
+
+                switch (documentType)
+                {
+                    case "cnic_front":
+                        verificationForm.CnicFrontImage = imageUrl;
+                        cnicFrontFile = file;
+                        cnicFrontBytes = fileBytes;
+                        break;
+                    case "cnic_back":
+                        verificationForm.CnicBackImage = imageUrl;
+                        cnicBackFile = file;
+                        cnicBackBytes = fileBytes;
+                        break;
+                    case "mbbs":
+                        verificationForm.MbbsImage = imageUrl;
+                        mbbsFile = file;
+                        mbbsBytes = fileBytes;
+                        break;
+                    case "fcps":
+                        verificationForm.FcpsImage = imageUrl;
+                        fcpsFile = file;
+                        fcpsBytes = fileBytes;
+                        break;
+                    case "license":
+                        verificationForm.LicenseImage = imageUrl;
+                        licenseFile = file;
+                        licenseBytes = fileBytes;
+                        break;
+                }
+
+                ToastComponent?.ShowSuccessToast("Uploaded", $"Document uploaded successfully");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Failed to upload document: {ex.Message}");
+        }
+    }
+
+    // Individual upload handlers for each document type
+    private async Task OnCnicFrontUpload(InputFileChangeEventArgs e) => await OnDocumentUpload(e, "cnic_front");
+    private async Task OnCnicBackUpload(InputFileChangeEventArgs e) => await OnDocumentUpload(e, "cnic_back");
+    private async Task OnMbbsUpload(InputFileChangeEventArgs e) => await OnDocumentUpload(e, "mbbs");
+    private async Task OnFcpsUpload(InputFileChangeEventArgs e) => await OnDocumentUpload(e, "fcps");
+    private async Task OnLicenseUpload(InputFileChangeEventArgs e) => await OnDocumentUpload(e, "license");
+
+    // Clear handlers
+    private void ClearCnicFront() { verificationForm.CnicFrontImage = string.Empty; cnicFrontFile = null; cnicFrontBytes = null; StateHasChanged(); }
+    private void ClearCnicBack() { verificationForm.CnicBackImage = string.Empty; cnicBackFile = null; cnicBackBytes = null; StateHasChanged(); }
+    private void ClearMbbs() { verificationForm.MbbsImage = string.Empty; mbbsFile = null; mbbsBytes = null; StateHasChanged(); }
+    private void ClearFcps() { verificationForm.FcpsImage = string.Empty; fcpsFile = null; fcpsBytes = null; StateHasChanged(); }
+    private void ClearLicense() { verificationForm.LicenseImage = string.Empty; licenseFile = null; licenseBytes = null; StateHasChanged(); }
+
+    private async Task SubmitVerification()
+    {
+        try
+        {
+            isSubmittingVerification = true;
+            StateHasChanged();
+
+            // Validate required fields
+            var missingFields = new List<string>();
+            if (string.IsNullOrEmpty(verificationForm.CnicFrontImage)) missingFields.Add("CNIC Front");
+            if (string.IsNullOrEmpty(verificationForm.CnicBackImage)) missingFields.Add("CNIC Back");
+            if (string.IsNullOrEmpty(verificationForm.MbbsImage)) missingFields.Add("MBBS Degree");
+            if (string.IsNullOrEmpty(verificationForm.LicenseImage)) missingFields.Add("PMDC License");
+            if (string.IsNullOrEmpty(verificationForm.LicenceNumber)) missingFields.Add("License Number");
+            if (string.IsNullOrEmpty(verificationForm.Specialization)) missingFields.Add("Specialization");
+
+            if (missingFields.Any())
+            {
+                ToastComponent?.ShowDangerToast("Missing Fields", $"Please provide: {string.Join(", ", missingFields)}");
+                return;
+            }
+
+            if (!await ValidateCnicWithWebhook())
+            {
+                return;
+            }
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var content = new MultipartFormDataContent();
+
+            content.Add(new StringContent(verificationForm.LicenceNumber), "LicenceNumber");
+            content.Add(new StringContent(verificationForm.Specialization), "Specialization");
+
+            // Add document files using stored bytes (avoids JS interop issues)
+            if (cnicFrontBytes != null && cnicFrontBytes.Length > 0 && cnicFrontFile != null)
+            {
+                var byteContent = new ByteArrayContent(cnicFrontBytes);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue(cnicFrontFile.ContentType);
+                content.Add(byteContent, "cnic_front_image", cnicFrontFile.Name);
+            }
+
+            if (cnicBackBytes != null && cnicBackBytes.Length > 0 && cnicBackFile != null)
+            {
+                var byteContent = new ByteArrayContent(cnicBackBytes);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue(cnicBackFile.ContentType);
+                content.Add(byteContent, "cnic_back_image", cnicBackFile.Name);
+            }
+
+            if (mbbsBytes != null && mbbsBytes.Length > 0 && mbbsFile != null)
+            {
+                var byteContent = new ByteArrayContent(mbbsBytes);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue(mbbsFile.ContentType);
+                content.Add(byteContent, "mbbs_image", mbbsFile.Name);
+            }
+
+            if (fcpsBytes != null && fcpsBytes.Length > 0 && fcpsFile != null)
+            {
+                var byteContent = new ByteArrayContent(fcpsBytes);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue(fcpsFile.ContentType);
+                content.Add(byteContent, "fcps_image", fcpsFile.Name);
+            }
+
+            if (licenseBytes != null && licenseBytes.Length > 0 && licenseFile != null)
+            {
+                var byteContent = new ByteArrayContent(licenseBytes);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue(licenseFile.ContentType);
+                content.Add(byteContent, "license_image", licenseFile.Name);
+            }
+
+            var response = await client.PostAsync("api/DoctorVerification/submit", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                doctorForm.IsSubmittedForVerification = true;
+                SyncProfileFieldsFromVerification();
+                activeTab = "profile";
+                ToastComponent?.ShowSuccessToast("Submitted", "Your verification request has been submitted. Profile fields have been updated from PMDC.");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Failed", $"Submission failed: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+        finally
+        {
+            isSubmittingVerification = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<bool> ValidateCnicWithWebhook()
+    {
+        if (!await ValidateCnicFile(cnicFrontBytes, cnicFrontFile, "front"))
+        {
+            return false;
+        }
+
+        if (!await ValidateCnicFile(cnicBackBytes, cnicBackFile, "back"))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<bool> ValidateCnicFile(byte[]? fileBytes, IBrowserFile? file, string sideLabel)
+    {
+        if (fileBytes == null || fileBytes.Length == 0 || file == null)
+        {
+            ToastComponent?.ShowDangerToast("Validation Error", $"CNIC {sideLabel} image is missing.");
+            return false;
+        }
+
+        try
+        {
+            using var validationClient = HttpClientFactory.CreateClient();
+            validationClient.Timeout = TimeSpan.FromSeconds(30);
+
+            using var validationContent = new MultipartFormDataContent();
+            var dataContent = new ByteArrayContent(fileBytes);
+            dataContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            validationContent.Add(dataContent, "data", file.Name);
+
+            var response = await validationClient.PostAsync(CnicValidationUrl, validationContent);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"CNIC validation error ({sideLabel}): {err}");
+                ToastComponent?.ShowDangerToast("Validation Error", $"CNIC {sideLabel} validation failed: {response.StatusCode}");
+                return false;
+            }
+
+            var validationText = (await response.Content.ReadAsStringAsync()).Trim();
+            Console.WriteLine($"CNIC validation response ({sideLabel}): {validationText}");
+
+            if (!string.Equals(validationText, "CNIC", StringComparison.OrdinalIgnoreCase))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"CNIC {sideLabel} validation failed. Please upload a valid CNIC image.");
+                return false;
+            }
+
+            return true;
+        }
+        catch (TaskCanceledException tce)
+        {
+            ToastComponent?.ShowDangerToast("Validation Timeout", $"CNIC {sideLabel} validation timed out. Please try again later.");
+            Console.Error.WriteLine($"CNIC validation timeout ({sideLabel}): {tce.Message}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Validation Error", $"Failed to validate CNIC {sideLabel}. Please try again.");
+            Console.Error.WriteLine($"CNIC validation exception ({sideLabel}): {ex}");
+            return false;
+        }
+    }
+
+
+    private async Task SubmitReVerification()
+    {
+        try
+        {
+            isSubmittingVerification = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            
+            var requestBody = new
+            {
+                licence_number = verificationForm.LicenceNumber,
+                specialization = verificationForm.Specialization,
+                reason = "Updating license information"
+            };
+
+            var response = await client.PostAsJsonAsync("api/DoctorVerification/submit-reverification", requestBody);
+
+            if (response.IsSuccessStatusCode)
+            {
+                doctorForm.IsReVerificationRequired = true;
+                doctorForm.IsVerified = false;
+                isEditingLockedFields = false;
+                ToastComponent?.ShowSuccessToast("Submitted", "Your re-verification request has been submitted. AI Agent access is temporarily suspended.");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Failed", $"Submission failed: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+        finally
+        {
+            isSubmittingVerification = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                if (file.Size > 5 * 1024 * 1024)
+                {
+                    ToastComponent?.ShowDangerToast("Error", "File size must be less than 5MB");
+                    return;
+                }
+
+                if (!file.ContentType.StartsWith("image/"))
+                {
+                    ToastComponent?.ShowDangerToast("Error", "Please select an image file");
+                    return;
+                }
+
+                ToastComponent?.ShowInfoToast("Uploading", "Processing image...");
+
+                // Store file bytes immediately to avoid JS interop issues later
+                using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                uploadedImageBytes = ms.ToArray();
+                uploadedImageContentType = file.ContentType;
+                uploadedImageName = file.Name;
+
+                var base64 = Convert.ToBase64String(uploadedImageBytes);
+                doctorForm.ImageUrl = $"data:{file.ContentType};base64,{base64}";
+                uploadedImageFile = file;
+
+                ToastComponent?.ShowSuccessToast("Success", "Image updated successfully!");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Failed to upload image: {ex.Message}");
+        }
+    }
+
+    private async Task<string> ConvertToBase64(IBrowserFile file)
+    {
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        var base64 = Convert.ToBase64String(bytes);
+        return $"data:{file.ContentType};base64,{base64}";
+    }
+
+    private async Task TriggerFileInput()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", "document.querySelector('input[type=\"file\"]').click();");
+        }
+        catch
+        {
+            if (fileInput != null)
+            {
+                await Task.Delay(100);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private static string NormalizeExperience(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        if (string.IsNullOrEmpty(digits)) return value;
+        var years = int.Parse(digits);
+        return years <= 5 ? years.ToString() : "Other";
+    }
+
+    private static int ParseIntSafe(string? s)
+        => int.TryParse(new string((s ?? "").Where(char.IsDigit).ToArray()), out var n) ? n : 0;
+
+    private static DateTime CreateDateTimeFromTimeSpan(TimeOnly time)
+        => DateTime.Today.Add(time.ToTimeSpan());
+
+    private void OpenTimeEditor(DateTime date)
+    {
+        if (date.Date < DateTime.Today.Date) return;
+        selectedDate = date.Date;
+        if (dailyAvailability.TryGetValue(selectedDate.Value, out var existing))
+        {
+            selectedStartTimeString = existing.Start.ToString("HH:mm");
+            selectedEndTimeString   = existing.End.ToString("HH:mm");
+        }
+        else
+        {
+            selectedStartTimeString = "09:00";
+            selectedEndTimeString   = "17:00";
+        }
+        StateHasChanged();
+    }
+
+    private void InitializeAvailabilityDates()
+    {
+        availabilityDates.Clear();
+        dailyAvailability.Clear();
+    }
+
+    private void OnAvailabilityToggleChanged()
+    {
+        if (doctorForm.IsAvailable)
+        {
+            InitializeAvailabilityDates();
+        }
+        else
+        {
+            availabilityDates.Clear();
+            dailyAvailability.Clear();
+            selectedDate = null;
+        }
+        StateHasChanged();
+    }
+
+    private void SaveSelectedDateTime()
+    {
+        if (!selectedDate.HasValue) return;
+        if (!TimeOnly.TryParse(selectedStartTimeString, out var st)) return;
+        if (!TimeOnly.TryParse(selectedEndTimeString, out var et)) return;
+        if (st < minDayTime) st = minDayTime;
+        if (et > maxDayTime) et = maxDayTime;
+        if (et <= st)
+        {
+            ToastComponent?.ShowDangerToast("Invalid time", "End time must be after start time.");
+            return;
+        }
+
+        var date = selectedDate.Value.Date;
+        dailyAvailability[date] = new DayTimeRange(st, et);
+        availabilityDates.Add(date);
+
+        var next = date.AddDays(1);
+        var lastWindow = DateTime.Today.AddDays(13).Date;
+        selectedDate = next <= lastWindow ? next : null;
+        if (selectedDate.HasValue)
+        {
+            selectedStartTimeString = st.ToString("HH:mm");
+            selectedEndTimeString   = et.ToString("HH:mm");
+        }
+        StateHasChanged();
+    }
+
+    private void SkipSelectedDate()
+    {
+        if (!selectedDate.HasValue) return;
+        var date = selectedDate.Value.Date;
+        dailyAvailability.Remove(date);
+        availabilityDates.Remove(date);
+
+        var next = date.AddDays(1);
+        var lastWindow = DateTime.Today.AddDays(13).Date;
+        selectedDate = next <= lastWindow ? next : null;
+        StateHasChanged();
+    }
+
+@* M-2 MODELS USED IN DOCTOR PROFILE *@
+    private sealed record DayTimeRange(TimeOnly Start, TimeOnly End);
+
+    private sealed class DoctorResponseDto
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DoctorDto? doctor { get; set; }
+    }
+
+    private sealed class DoctorDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public bool IsVerified { get; set; }
+        public bool IsAvailable { get; set; }
+        public string LicenceNumber { get; set; } = string.Empty;
+        public string PersonalInfoId { get; set; } = string.Empty;
+        public DateTime RenewalDate { get; set; }
+        public string Speciality { get; set; } = string.Empty;
+        public DateTime AvailabilityDate { get; set; }
+        public List<DateTime> AvailabilityDates { get; set; } = new();
+        public AvailableTimeDto? AvailableTimeMorning { get; set; }
+        public ClinicInfoDto? ClinicInfo { get; set; }
+        public string Experience { get; set; } = string.Empty;
+        public string Fee { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+        public string Specialization { get; set; } = string.Empty;
+        public List<DayAvailabilityDto> DailyAvailabilities { get; set; } = new();
+        
+        // Verification fields
+        public bool IsSubmittedForVerification { get; set; }
+        public bool IsReVerificationRequired { get; set; }
+        public bool IsLicenseInfoLocked { get; set; }
+        public string CnicFrontImage { get; set; } = string.Empty;
+        public string CnicBackImage { get; set; } = string.Empty;
+        public string MbbsImage { get; set; } = string.Empty;
+        public string FcpsImage { get; set; } = string.Empty;
+        public string LicenseImage { get; set; } = string.Empty;
+    }
+
+    private sealed class AvailableTimeDto
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+    }
+
+    private sealed class DayAvailabilityDto
+    {
+        public DateTime Date { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public List<Slot> Slots { get; set; } = new();
+    }
+
+    public class Slot
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public bool IsBooked { get; set; } = false;
+        public string UserId { get; set; } = string.Empty;
+    }
+
+    private sealed class ClinicInfoDto
+    {
+        public string Location { get; set; } = string.Empty;
+    }
+
+    private sealed class DoctorFormModel
+    {
+        public bool IsVerified { get; set; }
+        public bool IsSubmittedForVerification { get; set; }
+        public bool IsReVerificationRequired { get; set; }
+        public bool IsLicenseInfoLocked { get; set; }
+
+        [Required(ErrorMessage = "Licence number is required")]
+        [StringLength(7, MinimumLength = 7, ErrorMessage = "Licence number must be exactly 7 characters")]
+        public string LicenceNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Speciality is required")]
+        public string Speciality { get; set; } = string.Empty;
+
+        public bool IsAvailable { get; set; }
+
+        [Required(ErrorMessage = "Clinic location is required")]
+        public string ClinicLocation { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Experience is required")]
+        public string Experience { get; set; } = string.Empty;
+        
+        [Range(1, 30, ErrorMessage = "Experience must be between 1 and 30 years")]
+        public int? ExperienceOtherYears { get; set; }
+
+        [Range(0, 5000, ErrorMessage = "Consultation fee must be 0 - 5000 PKR")]
+        public int Fee { get; set; }
+
+        [Required(ErrorMessage = "Specialization is required")]
+        public string Specialization { get; set; } = string.Empty;
+
+        public string ImageUrl { get; set; } = string.Empty;
+        public DateTime RenewalDate { get; set; } = DateTime.Now;
+    }
+
+    private sealed class VerificationFormModel
+    {
+        public string LicenceNumber { get; set; } = string.Empty;
+        public string Specialization { get; set; } = string.Empty;
+        public string CnicFrontImage { get; set; } = string.Empty;
+        public string CnicBackImage { get; set; } = string.Empty;
+        public string MbbsImage { get; set; } = string.Empty;
+        public string FcpsImage { get; set; } = string.Empty;
+        public string LicenseImage { get; set; } = string.Empty;
+    }
+}

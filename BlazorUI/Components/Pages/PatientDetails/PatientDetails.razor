@@ -1,0 +1,4066 @@
+@rendermode InteractiveServer
+@page "/patient-details/{patientId}"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@using BlazorUI.Authentication
+@using BlazorUI.Models
+@using BlazorUI.Models.AppointmentModel
+@using BlazorUI.Models.PatientDto
+@using BlazorUI.Models.ChatModel
+@using BlazorUI.Models.DoctorModel
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using NetcodeHub.Packages.Components.Toast
+@using Microsoft.AspNetCore.Components
+@using BlazorUI.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject ProtectedSessionStorage SessionStorage
+@inject ProtectedLocalStorage LocalStorage
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ApiClient ApiClient
+
+<div class="container-fluid" style="background: linear-gradient(180deg, #ffffff 16%, #94c979 100%); min-height: 100vh; padding: 20px;">
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between p-3 shadow rounded"
+                style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                
+                <h3 class="mb-0">
+                    Patient: <span class="fw-bold"> <i class="bi bi-person-circle me-1"></i> @(patientDtoResponse?.Data?.FirstName)</span>
+                </h3>
+
+                <div class="d-flex align-items-center gap-3">
+                    @if (agentInfo != null && agentInfo.IsAgentAvailable)
+                    {
+                        <span class="badge bg-light text-success">
+                            <i class="bi bi-robot me-1"></i> @agentInfo.Specialty Agent Active
+                        </span>
+                    }
+                    else if (agentInfo != null && !agentInfo.IsAgentAvailable)
+                    {
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-exclamation-triangle me-1"></i> No Agent for @agentInfo.Specialty
+                        </span>
+                    }
+                    
+                    @* Doctor quick actions: Start / Complete session for this patient *@
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-light text-success"
+                                disabled="@(!CanStartPatientAppointment())"
+                                title="@(!CanStartPatientAppointment() ? "Appointment time not reached yet" : "Start Session")"
+                                @onclick:stopPropagation="true"
+                                @onclick="StartSessionByPatient">
+                            <i class="bi bi-play-circle"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light text-primary"
+                                disabled="@(!CanCompletePatientAppointment())"
+                                title="@(!CanCompletePatientAppointment() ? "Start session first" : "Complete Appointment")"
+                                @onclick:stopPropagation="true"
+                                @onclick="CompleteByPatient">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </div>
+                    <button class="btn"
+                        @onclick='() => Navigation.NavigateTo("/dashboard", replace: true)'>
+                        <i class="bi bi-x fs-4" style="color: white;"></i>
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+
+        <!-- Chat History Sidebar -->
+        <div class="col-12 col-md-3 mb-3" id="chatSidebar">
+            <div class="border rounded bg-white shadow-sm p-3 d-flex flex-column"
+                style="height: 80vh; overflow-y: auto;">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-success mb-0">Chats</h6>
+                    <button class="btn btn-success btn-sm rounded-pill px-2 py-1 d-inline-flex align-items-center"
+                            title="New Chat"
+                            @onclick="CreateNewChat"
+                            disabled="@isCreatingChat">
+                        @if (isCreatingChat)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-plus-circle me-1"></i>
+                        }
+                        <span class="d-none d-sm-inline">New Chat</span>
+                    </button>
+                </div>
+
+                @if (isLoadingChats)
+                {
+                    <div class="d-flex justify-content-center py-4">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (chatList != null && chatList.Count > 0)
+                {
+                    <ul class="list-group list-group-flush" style="flex-grow: 1;">
+                        @foreach (var chat in chatList)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center @(currentChatId == chat.Id ? "bg-success text-white" : "")"
+                                style="cursor: pointer; border-radius: 8px; margin-bottom: 4px;"
+                                @onclick="() => LoadChat(chat.Id)">
+                                
+                                <span class="text-truncate" style="max-width: 180px;">
+                                    <i class="bi bi-chat-dots me-2 @(currentChatId == chat.Id ? "text-white" : "text-success")"></i> 
+                                    @chat.Title
+                                </span>
+
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="badge @(currentChatId == chat.Id ? "bg-light text-success" : "bg-success")">@chat.MessageCount</span>
+                                    <button class="btn btn-sm p-0" @onclick:stopPropagation="true" @onclick="() => DeleteChat(chat.Id)">
+                                        <i class="bi bi-trash @(currentChatId == chat.Id ? "text-white" : "text-danger")"></i>
+                                    </button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-chat-square-text fs-1"></i>
+                        <p class="mt-2">No chats yet</p>
+                        <small>Click "New Chat" to start a consultation</small>
+                    </div>
+                }
+            </div>
+        </div>
+
+
+        <!-- Main Chat Area -->
+        <div class="col-12 col-md-6 mb-3">
+            <div class="border rounded shadow-sm d-flex flex-column"
+                style="height: 80vh; background: #f8f9fa;">
+
+                @* Tabs for Ophthalmologist *@
+                @if (IsOphthalmologist())
+                {
+                    <ul class="nav nav-tabs" style="background: #f0f0f0; border-top-left-radius: .3rem; border-top-right-radius: .3rem;">
+                        <li class="nav-item">
+                            <a class="nav-link @(activeTab == "agent" ? "active text-success fw-bold" : "text-secondary")" 
+                               style="cursor: pointer; border-bottom: @(activeTab == "agent" ? "3px solid #2e7d32" : "none");"
+                               @onclick='() => SetActiveTab("agent")'>
+                                <i class="bi bi-robot me-1"></i> Agent
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(activeTab == "dr" ? "active text-success fw-bold" : "text-secondary")" 
+                               style="cursor: pointer; border-bottom: @(activeTab == "dr" ? "3px solid #2e7d32" : "none");"
+                               @onclick='() => SetActiveTab("dr")'>
+                                <i class="bi bi-eye me-1"></i> DR
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(activeTab == "classifier" ? "active text-success fw-bold" : "text-secondary")" 
+                               style="cursor: pointer; border-bottom: @(activeTab == "classifier" ? "3px solid #2e7d32" : "none");"
+                               @onclick='() => SetActiveTab("classifier")'>
+                                <i class="bi bi-search me-1"></i> Classifier
+                            </a>
+                        </li>
+                    </ul>
+                }
+
+                @if (activeTab == "agent" || !IsOphthalmologist())
+                {
+                <div class="p-3 d-flex align-items-center justify-content-between"
+                    style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white; @(IsOphthalmologist() ? "" : "border-top-left-radius: .3rem; border-top-right-radius: .3rem;")">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-robot me-2"></i>AI Consultation Chat
+                        @if (!string.IsNullOrEmpty(agentInfo?.Specialty))
+                        {
+                            <small class="fw-normal">(@agentInfo.Specialty)</small>
+                        }
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- M-5 GENERATE PRESCRIPTION -->
+                        <button class="btn btn-light btn-sm rounded-pill px-3"
+        @onclick="GeneratePrescription"
+        disabled="@(!IsSessionActiveOrReadyToStart() || isGeneratingPrescription)"
+        title="@(!IsSessionActiveOrReadyToStart() ? "Appointment not active or ready" : "Generate Prescription")">
+
+    @if (isGeneratingPrescription)
+    {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        <span>Generating...</span>
+    }
+    else
+    {
+        <i class="bi bi-file-earmark-medical me-1"></i>
+        <span>Generate Prescription</span>
+    }
+</button>
+                        
+                        <!-- NEW REFERRAL UI -->
+                        <div class="d-flex align-items-center gap-2 border-start ps-2 border-light">
+                            <select class="form-select form-select-sm w-auto" 
+                                    style="border-radius: 20px; font-size: 0.85rem;" 
+                                    @bind="selectedReferralSpecialty"
+                                    disabled="@(!hasPrescriptionGenerated)">
+                                <option value="">Refer to...</option>
+                                @if (doctorSpecialty != "Optometrist")
+                                {
+                                    <option value="Optometrist">Optometrist</option>
+                                }
+                                @if (doctorSpecialty != "Ophthalmologist")
+                                {
+                                    <option value="Ophthalmologist">Ophthalmologist</option>
+                                }
+                                @if (doctorSpecialty != "Ocularist")
+                                {
+                                    <option value="Ocularist">Ocularist</option>
+                                }
+                                @if (doctorSpecialty != "Optician")
+                                {
+                                    <option value="Optician">Optician</option>
+                                }
+                            </select>
+                            <button class="btn btn-warning btn-sm rounded-pill px-3 fw-bold"
+                                    @onclick="ReferPatient"
+                                    title="@(!hasPrescriptionGenerated ? "Please generate a prescription first" : "Refer Patient")"
+                                    disabled="@(isReferring || string.IsNullOrEmpty(selectedReferralSpecialty) || !hasPrescriptionGenerated)">
+                                @if (isReferring)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>
+                                }
+                                <span class="text-dark">Refer</span>
+                            </button>
+                        </div>
+
+                        <span class="badge @(agentInfo?.IsAgentAvailable == true ? "bg-light text-success" : "bg-warning text-dark")">
+                            @(agentInfo?.IsAgentAvailable == true ? "Active" : "Unavailable")
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"
+                    style="background-color: #ffffff; border-left: 4px solid #94c979; border-right: 4px solid #94c979;">
+                    
+                    @if (currentChat != null && currentChat.Chats.Count > 0)
+                    {
+                        foreach (var message in currentChat.Chats)
+                        {
+                            <!-- User Message -->
+                            <div class="d-flex justify-content-end mb-3">
+                                <div class="p-2 px-3 rounded shadow-sm"
+                                    style="background-color: #e9ecef; max-width: 70%;">
+                                    <strong class="d-block text-muted small">You</strong>
+                                    <div style="white-space: pre-wrap;">@message.Query</div>
+                                    <div class="text-end text-muted small">@message.Timestamp.ToDisplayString("hh:mm tt")</div>
+                                </div>
+                            </div>
+
+                            <!-- AI Response - Show thinking if empty -->
+                            @if (string.IsNullOrEmpty(message.Response))
+                            {
+                                <div class="d-flex justify-content-start mb-3">
+                                    <div class="p-2 px-3 rounded shadow-sm text-white"
+                                        style="background-color: #28a745; max-width: 70%;">
+                                        <strong class="d-block small">
+                                            <i class="bi bi-robot me-1"></i>AI Agent
+                                        </strong>
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                            <span>Thinking...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-content-start mb-3">
+                                    <div class="p-2 px-3 rounded shadow-sm text-white"
+                                        style="background-color: #28a745; max-width: 70%;">
+                                        <strong class="d-block small">
+                                            <i class="bi bi-robot me-1"></i>AI Agent
+                                        </strong>
+                                        <div style="white-space: pre-wrap;">@message.Response</div>
+                                        <div class="text-start text-light small">@message.Timestamp.ToDisplayString("hh:mm tt")</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+                    else if (string.IsNullOrEmpty(currentChatId))
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-chat-square-text fs-1"></i>
+                            <h5 class="mt-3">Start a New Consultation</h5>
+                            <p>Click "New Chat" or select an existing chat to begin</p>
+                            @if (agentInfo?.IsAgentAvailable == true)
+                            {
+                                <p class="text-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    @agentInfo.Specialty AI Agent is ready to assist
+                                </p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-chat-dots fs-1"></i>
+                            <p class="mt-3">No messages yet. Start the conversation!</p>
+                        </div>
+                    }
+
+                    @* Only show this thinking indicator if there's no message with empty response already showing one *@
+                    @if (isSendingMessage && (currentChat == null || !currentChat.Chats.Any(m => string.IsNullOrEmpty(m.Response))))
+                    {
+                        <div class="d-flex justify-content-start mb-3">
+                            <div class="p-2 px-3 rounded shadow-sm text-white"
+                                style="background-color: #28a745; max-width: 70%;">
+                                <strong class="d-block small">
+                                    <i class="bi bi-robot me-1"></i>AI Agent
+                                </strong>
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    <span>Thinking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Message Input -->
+                <div class="p-2 d-flex align-items-center border-top bg-white">
+                    <input type="text" 
+                           class="form-control rounded-pill me-2" 
+                           placeholder="@(agentInfo?.IsAgentAvailable == true ? "Type your message..." : "AI Agent not available for your specialty")"
+                           @bind="messageInput"
+                           @bind:event="oninput"
+                           @onkeypress="HandleKeyPress"
+                           disabled="@(isSendingMessage || agentInfo?.IsAgentAvailable != true)" />
+                    <button class="btn btn-success rounded-circle d-flex align-items-center justify-content-center" 
+                            style="width: 40px; height: 40px;"
+                            @onclick="SendMessage"
+                            disabled="@(!IsSessionActiveOrReadyToStart() || isSendingMessage || string.IsNullOrWhiteSpace(messageInput) || agentInfo?.IsAgentAvailable != true)">
+                        @if (isSendingMessage)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-send"></i>
+                        }
+                    </button>
+                </div>
+                }
+
+                @* DR Tab Content - Diabetic Retinopathy *@
+                @if (activeTab == "dr" && IsOphthalmologist())
+                {
+                    <div class="p-3 d-flex align-items-center justify-content-between"
+                        style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-eye me-2"></i>Diabetic Retinopathy Detection
+                        </h6>
+                        <small class="opacity-75">AI-Powered Grading</small>
+                    </div>
+                    <div class="flex-grow-1 overflow-auto p-4"
+                         style="background-color: #f8fff4;">
+                        
+                        @if (string.IsNullOrEmpty(drResult))
+                        {
+                            @* Important Notice *@
+                            <div class="alert alert-warning d-flex align-items-start mb-4" role="alert" style="border-radius: 12px; border-left: 4px solid #ffc107;">
+                                <i class="bi bi-exclamation-triangle-fill me-3 fs-4 text-warning"></i>
+                                <div>
+                                    <strong>Important:</strong> Please upload only <strong>fundus/retinal eye images</strong> for accurate Diabetic Retinopathy detection. 
+                                </div>
+                            </div>
+
+                            @* Upload Area *@
+                            <label for="drFileInputReal" class="dr-upload-area text-center p-5 mb-4 d-block" 
+                                 style="border: 3px dashed #2e7d32; border-radius: 16px; background: #ffffff; cursor: pointer; transition: all 0.3s ease;">
+                                <div style="font-size: 4rem;">👁️</div>
+                                <h5 class="text-dark mb-2 fw-semibold">Upload Fundus Image</h5>
+                                <p class="text-muted mb-1">Click to browse or drag & drop</p>
+                                <small class="text-muted d-block">Supports: JPG, PNG, JPEG</small>
+                                <small class="text-success d-block mt-2"><i class="bi bi-info-circle me-1"></i>Only fundus/retina images for accurate results</small>
+                            </label>
+                            <InputFile OnChange="HandleDRImageUpload" accept="image/*" class="d-none" id="drFileInputReal" disabled="@isUploadingDR" />
+
+                            @* Preview Image *@
+                            @if (!string.IsNullOrEmpty(drPreviewImageUrl))
+                            {
+                                <div class="text-center mb-4 position-relative" style="max-width: 400px; margin: 0 auto;">
+                                    <img src="@drPreviewImageUrl" alt="Preview" class="img-fluid rounded shadow" style="max-height: 300px; border-radius: 16px !important;" />
+                                    <button class="btn btn-danger btn-sm position-absolute rounded-circle" 
+                                            style="top: 10px; right: 10px; width: 36px; height: 36px;"
+                                            @onclick="ClearDRPreview">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            }
+                                
+                            @if (isUploadingDR)
+                            {
+                                <div class="text-center mt-4">
+                                    <div class="spinner-border text-success" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-3 fw-semibold text-success">Analyzing Image...</p>
+                                </div>
+                            }
+
+                            @* DR Severity Cards *@
+                            <div class="mb-3 mt-4">
+                                <p class="text-muted small text-center mb-2"><i class="bi bi-bullseye me-1"></i>DR Severity Grades:</p>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-2">
+                                            <small class="text-muted">Grade 0</small>
+                                            <p class="small mb-0 mt-1">No DR</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-2">
+                                            <small class="text-muted">Grade 1</small>
+                                            <p class="small mb-0 mt-1">Mild NPDR</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-2">
+                                            <small class="text-muted">Grade 2</small>
+                                            <p class="small mb-0 mt-1">Moderate NPDR</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-2">
+                                            <small class="text-muted">Grade 3</small>
+                                            <p class="small mb-0 mt-1">Severe NPDR</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-2">
+                                            <small class="text-muted">Grade 4</small>
+                                            <p class="small mb-0 mt-1">Proliferative DR</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Sample Image Guidance *@
+                            <div class="alert alert-info mt-4" role="alert" style="border-radius: 12px;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-lightbulb me-2 fs-5"></i>
+                                    <div>
+                                        <strong>Tip:</strong> Upload a <strong>fundus photograph</strong> or <strong>retinal scan</strong> image from an eye examination for accurate DR grading.
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @* Results Display *@
+                            <div class="p-4 mb-4" style="background: linear-gradient(135deg, #f8fff4 0%, #d7f2c2 100%); border-radius: 16px;">
+                                <h5 class="text-center mb-4 fw-bold text-dark">Analysis Results</h5>
+                                
+                                @* Prediction Card *@
+                                <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                                    <div class="card-body text-center py-4">
+                                        <p class="text-muted small mb-2">Diabetic Retinopathy Grade</p>
+                                        <h3 class="fw-bold mb-1 text-success" style="text-transform: capitalize;">@drResult</h3>
+                                        <span class="badge px-4 py-2 fs-6" style="background: linear-gradient(135deg, #2e7d32 0%, #66bb6a 100%);">
+                                            @((drConfidence * 100).ToString("F1"))% Confidence
+                                        </span>
+                                    </div>
+                                </div>
+
+                                @* Probabilities *@
+                                @if (drProbabilities.Count > 0)
+                                {
+                                    <div class="mb-4">
+                                        @foreach (var prob in drProbabilities.OrderByDescending(x => x.Value))
+                                        {
+                                            var percentage = (prob.Value * 100);
+                                            <div class="card border-0 shadow-sm mb-2" style="border-radius: 10px;">
+                                                <div class="card-body py-3 px-4">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <span class="fw-medium text-dark text-capitalize">@GetDRGradeLabel(prob.Key)</span>
+                                                        <span class="fw-bold text-success">@percentage.ToString("F1")%</span>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px; border-radius: 4px; background: #e9ecef;">
+                                                        <div class="progress-bar" role="progressbar" 
+                                                             style="width: @percentage.ToString("F1")%; background: linear-gradient(90deg, #2e7d32, #66bb6a); border-radius: 4px; transition: width 0.8s ease;"
+                                                             aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @* DR Info *@
+                                <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #2e7d32 !important;">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold text-dark mb-2">
+                                            <i class="bi bi-info-circle me-2 text-success"></i>About DR Grades
+                                        </h6>
+                                        <p class="text-muted small mb-0" style="line-height: 1.6;">
+                                            @GetDRDescription(drResult)
+                                        </p>
+                                    </div>
+                                </div>
+
+                                @* Validation Warning *@
+                                <div class="alert alert-warning mt-3 mb-0" role="alert" style="border-radius: 10px;">
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <small>
+                                            <strong>Note:</strong> These results are only accurate for <strong>fundus/retinal eye images</strong>. 
+                                            If you uploaded a non-eye image, please discard this result and upload a proper retinal scan.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Action Buttons *@
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-success flex-grow-1" @onclick="ClearDRResult">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Analyze Another Image
+                                </button>
+                            </div>
+                            
+                            @* Footer Notice *@
+                            <div class="text-center mt-4">
+                                <small class="text-muted">
+                                    This is for educational purposes only. Consult a medical professional for diagnosis.
+                                </small>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Classifier Tab Content - Eye Disease Classification *@
+                @if (activeTab == "classifier" && IsOphthalmologist())
+                {
+                    <div class="p-3 d-flex align-items-center justify-content-between"
+                        style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-eye me-2"></i>Eye Disease Classifier
+                        </h6>
+                        <small class="opacity-75">AI-Powered Detection</small>
+                    </div>
+                    <div class="flex-grow-1 overflow-auto p-4"
+                         style="background-color: #f8fff4;">
+                        
+                        @if (string.IsNullOrEmpty(classifierResult))
+                        {
+                            @* Important Notice *@
+                            <div class="alert alert-warning d-flex align-items-start mb-4" role="alert" style="border-radius: 12px; border-left: 4px solid #ffc107;">
+                                <i class="bi bi-exclamation-triangle-fill me-3 fs-4 text-warning"></i>
+                                <div>
+                                    <strong>Important:</strong> Please upload only <strong>fundus/retinal eye images</strong>. 
+                                    The classifier is trained specifically for eye disease detection and may produce inaccurate results for non-eye images.
+                                </div>
+                            </div>
+
+                            @* Upload Area *@
+                            <label for="classifierFileInputReal" class="classifier-upload-area text-center p-5 mb-4 d-block" 
+                                 style="border: 3px dashed #2e7d32; border-radius: 16px; background: #ffffff; cursor: pointer; transition: all 0.3s ease;">
+                                <div style="font-size: 4rem;">👁️</div>
+                                <h5 class="text-dark mb-2 fw-semibold">Upload Retinal Eye Image</h5>
+                                <p class="text-muted mb-1">Click to browse or drag & drop</p>
+                                <small class="text-muted d-block">Supports: JPG, PNG, JPEG</small>
+                                <small class="text-success d-block mt-2"><i class="bi bi-info-circle me-1"></i>Only fundus/retina images for accurate results</small>
+                            </label>
+                            <InputFile OnChange="HandleClassifierImageUpload" accept="image/*" class="d-none" id="classifierFileInputReal" disabled="@isUploadingClassifier" />
+
+                            @* Preview Image *@
+                            @if (!string.IsNullOrEmpty(classifierPreviewImageUrl))
+                            {
+                                <div class="text-center mb-4 position-relative" style="max-width: 400px; margin: 0 auto;">
+                                    <img src="@classifierPreviewImageUrl" alt="Preview" class="img-fluid rounded shadow" style="max-height: 300px; border-radius: 16px !important;" />
+                                    <button class="btn btn-danger btn-sm position-absolute rounded-circle" 
+                                            style="top: 10px; right: 10px; width: 36px; height: 36px;"
+                                            @onclick="ClearClassifierPreview">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            }
+                                
+                            @if (isUploadingClassifier)
+                            {
+                                <div class="text-center mt-4">
+                                    <div class="spinner-border text-success" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-3 fw-semibold text-success">Analyzing Image...</p>
+                                </div>
+                            }
+
+                            @* Disease Info Cards - What we detect *@
+                            <div class="mb-3">
+                                <p class="text-muted small text-center mb-2"><i class="bi bi-bullseye me-1"></i>Conditions we can detect:</p>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-eye-slash text-primary fs-4"></i>
+                                            <p class="small mb-0 mt-2">Cataract</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-droplet text-danger fs-4"></i>
+                                            <p class="small mb-0 mt-2">Diabetic Retinopathy</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-circle text-warning fs-4"></i>
+                                            <p class="small mb-0 mt-2">Glaucoma</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-check-circle text-success fs-4"></i>
+                                            <p class="small mb-0 mt-2">Normal</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Sample Image Guidance *@
+                            <div class="alert alert-info mt-4" role="alert" style="border-radius: 12px;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-lightbulb me-2 fs-5"></i>
+                                    <div>
+                                        <strong>Tip:</strong> For best results, upload a clear <strong>fundus photograph</strong> or <strong>retinal scan</strong> image taken during an eye examination.
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @* Results Display *@
+                            <div class="p-4 mb-4" style="background: linear-gradient(135deg, #f8fff4 0%, #d7f2c2 100%); border-radius: 16px;">
+                                <h5 class="text-center mb-4 fw-bold text-dark">Analysis Results</h5>
+                                
+                                @* Prediction Card *@
+                                <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                                    <div class="card-body text-center py-4">
+                                        <p class="text-muted small mb-2">Predicted Condition</p>
+                                        <h3 class="fw-bold mb-3 text-success" style="text-transform: capitalize;">@classifierResult.Replace("_", " ")</h3>
+                                        <span class="badge px-4 py-2 fs-6" style="background: linear-gradient(135deg, #2e7d32 0%, #66bb6a 100%);">
+                                            @((classifierConfidence * 100).ToString("F1"))% Confidence
+                                        </span>
+                                    </div>
+                                </div>
+
+                                @* Probabilities *@
+                                @if (classifierProbabilities.Count > 0)
+                                {
+                                    <div class="mb-4">
+                                        @foreach (var prob in classifierProbabilities.OrderByDescending(x => x.Value))
+                                        {
+                                            var percentage = (prob.Value * 100);
+                                            <div class="card border-0 shadow-sm mb-2" style="border-radius: 10px;">
+                                                <div class="card-body py-3 px-4">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <span class="fw-medium text-dark text-capitalize">@prob.Key.Replace("_", " ")</span>
+                                                        <span class="fw-bold text-success">@percentage.ToString("F1")%</span>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px; border-radius: 4px; background: #e9ecef;">
+                                                        <div class="progress-bar" role="progressbar" 
+                                                             style="width: @percentage.ToString("F1")%; background: linear-gradient(90deg, #2e7d32, #66bb6a); border-radius: 4px; transition: width 0.8s ease;"
+                                                             aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @* Disease Info *@
+                                <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #2e7d32 !important;">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold text-dark mb-2">
+                                            <i class="bi bi-info-circle me-2 text-success"></i>About this Condition
+                                        </h6>
+                                        <p class="text-muted small mb-0" style="line-height: 1.6;">
+                                            @GetDiseaseDescription(classifierResult)
+                                        </p>
+                                    </div>
+                                </div>
+
+                                @* Validation Warning *@
+                                <div class="alert alert-warning mt-3 mb-0" role="alert" style="border-radius: 10px;">
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <small>
+                                            <strong>Note:</strong> These results are only accurate for <strong>fundus/retinal eye images</strong>. 
+                                            If you uploaded a non-eye image, please discard this result and upload a proper retinal scan.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Action Buttons *@
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-success flex-grow-1" @onclick="ClearClassifierResult">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Analyze Another Image
+                                </button>
+                            </div>
+                            
+                            @* Footer Notice *@
+                            <div class="text-center mt-4">
+                                <small class="text-muted">
+                                    This is for educational purposes only. Consult a medical professional for diagnosis.
+                                </small>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+
+        <!-- Patient Info Sidebar -->
+        <div class="col-12 col-md-3 mb-3" id="patientInfoSidebar">
+            <div class="border rounded shadow-sm p-3" 
+                style="height: 80vh; overflow-y: auto; background: linear-gradient(180deg, #f8fff4 0%, #d7f2c2 100%);">
+
+                <h5 class="fw-bold text-success text-center mb-3">
+                    <i class="bi bi-person-circle me-2"></i> Patient Info
+                </h5>
+
+                @if (isLoadingPatient)
+                {
+                    <div class="d-flex justify-content-center py-4">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                        <div class="card-body" style="background: #ffffff;">
+                            <h6 class="fw-bold text-success">
+                                <i class="bi bi-info-circle me-2"></i> Basic Info
+                            </h6>
+                            <p class="mb-1"><strong>Name:</strong> @(patientDtoResponse?.Data?.FirstName) @(patientDtoResponse?.Data?.LastName)</p>
+                            <p class="mb-1"><strong>Gender:</strong> @(patientDtoResponse?.Data?.Gender)</p>
+                            <p class="mb-0"><strong>Blood Group:</strong> @(patientDtoResponse?.Data?.BloodGroup)</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                        <div class="card-body" style="background: #f9fff5;">
+                            <h6 class="fw-bold text-success">
+                                <i class="bi bi-thermometer-half me-2"></i> Initial Symptoms
+                            </h6>
+                            <p class="mb-0">@(string.IsNullOrEmpty(patientDtoResponse?.Data?.InitialConditions) ? "No symptoms recorded" : patientDtoResponse?.Data?.InitialConditions)</p>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                        <div class="card-body" style="background: #ffffff;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-success mb-0">
+                                    <i class="bi bi-clipboard-data me-2"></i> History
+                                </h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-success rounded-pill" 
+                                            @onclick="RefreshPatientHistory"
+                                            disabled="@isRefreshingHistory"
+                                            title="Refresh History">
+                                        @if (isRefreshingHistory)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        }
+                                    </button>
+                                    <button class="btn btn-sm btn-success rounded-circle" 
+                                            @onclick="OpenPatientHistoryModal"
+                                            disabled="@isLoadingPatientFullHistory"
+                                            title="View Full History"
+                                            style="width: 32px; height: 32px; padding: 0;">
+                                        @if (isLoadingPatientFullHistory)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-clock-history"></i>
+                                        }
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="max-height: 150px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;">
+                                @if (string.IsNullOrEmpty(patientDtoResponse?.Data?.History))
+                                {
+                                    <p class="text-muted mb-0">No history recorded</p>
+                                }
+                                else
+                                {
+                                    @((MarkupString)FormatHistoryForDisplay(patientDtoResponse.Data.History))
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                        <div class="card-body" style="background: #f9fff5;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-success mb-0">
+                                    <i class="bi bi-file-earmark-medical me-2"></i> Prescriptions
+                                </h6>
+                                <button class="btn btn-sm btn-success rounded-circle" 
+                                        @onclick="OpenPatientReportsModal"
+                                        disabled="@isLoadingPatientReports"
+                                        title="View All Prescriptions"
+                                        style="width: 32px; height: 32px; padding: 0;">
+                                    @if (isLoadingPatientReports)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-eye"></i>
+                                    }
+                                </button>
+                            </div>
+                            <p class="text-muted small mb-0">Click the icon to view all saved prescriptions</p>
+                        </div>
+                    </div>
+
+                    @* Medication Adherence Section *@
+                    @* M-7 MEDICATION STICKING SHOWING TO DOCTOR *@
+                    <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                        <div class="card-body" style="background: #fff8f0;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-warning mb-0">
+                                    <i class="bi bi-clipboard-check me-2"></i> Medication Adherence
+                                </h6>
+                                <button class="btn btn-sm btn-warning rounded-circle" 
+                                        @onclick="LoadMedicationAdherence"
+                                        disabled="@isLoadingAdherence"
+                                        title="View Adherence Details"
+                                        style="width: 32px; height: 32px; padding: 0;">
+                                    @if (isLoadingAdherence)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    }
+                                </button>
+                            </div>
+                            @if (medicationAdherenceData.Count > 0)
+                            {
+                                <div class="mt-2" style="max-height: 200px; overflow-y: auto;">
+                                    @foreach (var adherence in medicationAdherenceData.Take(3))
+                                    {
+                                        <div class="p-2 mb-2 rounded" style="background: white; border-left: 3px solid @GetAdherenceColor(adherence.AdherencePercentage);">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="fw-bold small">@adherence.MedicineName</span>
+                                                <span class="badge" style="background: @GetAdherenceColor(adherence.AdherencePercentage);">
+                                                    @adherence.AdherencePercentage.ToString("F0")%
+                                                </span>
+                                            </div>
+                                            <div class="progress mt-1" style="height: 6px;">
+                                                <div class="progress-bar" 
+                                                     role="progressbar" 
+                                                     style="width: @adherence.AdherencePercentage%; background: @GetAdherenceColor(adherence.AdherencePercentage);">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">@adherence.TakenDoses/@adherence.TotalDoses doses • @adherence.MissedDoses missed</small>
+                                        </div>
+                                    }
+                                    @if (medicationAdherenceData.Count > 3)
+                                    {
+                                        <p class="text-muted small mb-0 text-center">+ @(medicationAdherenceData.Count - 3) more medications</p>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">Click refresh to load patient's medication adherence</p>
+                            }
+                        </div>
+                    </div>
+
+                    @* Daily Medication History Bar Graph *@
+                    <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                        <div class="card-body" style="background: #f0fff4;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-success mb-0">
+                                    <i class="bi bi-bar-chart-fill me-2"></i> 7-Day History
+                                </h6>
+                                <button class="btn btn-sm btn-success rounded-circle" 
+                                        @onclick="LoadDailyHistory"
+                                        disabled="@isLoadingDailyHistory"
+                                        title="Load Daily History"
+                                        style="width: 32px; height: 32px; padding: 0;">
+                                    @if (isLoadingDailyHistory)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    }
+                                </button>
+                            </div>
+                            @if (dailyHistoryData.Count > 0)
+                            {
+                                var overallPercentage = dailyHistoryData.Average(d => d.AdherencePercentage);
+                                var overallColor = overallPercentage >= 80 ? "#28a745" : (overallPercentage >= 50 ? "#ffc107" : "#dc3545");
+                                <div class="text-center mb-2">
+                                    <span class="badge px-3 py-2" style="background: @overallColor; font-size: 0.9rem;">
+                                        <i class="bi bi-heart-pulse me-1"></i> @overallPercentage.ToString("F0")% Overall
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-end" style="height: 120px; gap: 4px;">
+                                    @foreach (var day in dailyHistoryData)
+                                    {
+                                        var maxDoses = dailyHistoryData.Max(d => d.ScheduledDoses);
+                                        var barHeight = maxDoses > 0 ? (day.ScheduledDoses * 100.0 / maxDoses) : 0;
+                                        var takenHeight = day.ScheduledDoses > 0 ? (day.TakenDoses * barHeight / day.ScheduledDoses) : 0;
+                                        var missedHeight = barHeight - takenHeight;
+                                        var isToday = day.Date.Date == DateTime.Today;
+                                        var barColor = day.AdherencePercentage >= 80 ? "#28a745" : (day.AdherencePercentage >= 50 ? "#ffc107" : "#dc3545");
+                                        
+                                        <div class="d-flex flex-column align-items-center flex-grow-1" style="min-width: 30px;">
+                                            <div class="d-flex flex-column justify-content-end" style="height: 90px; width: 100%;">
+                                                @if (missedHeight > 0)
+                                                {
+                                                    <div style="height: @(missedHeight)%; background: #dc3545; border-radius: 4px 4px 0 0; min-height: 2px;"></div>
+                                                }
+                                                @if (takenHeight > 0)
+                                                {
+                                                    <div style="height: @(takenHeight)%; background: @barColor; border-radius: @(missedHeight > 0 ? "0" : "4px 4px") 0 0; min-height: 2px; @(isToday ? "border: 2px solid #1a5928;" : "")"></div>
+                                                }
+                                            </div>
+                                            <small class="text-muted mt-1" style="font-size: 0.65rem; @(isToday ? "font-weight: bold; color: #1a5928 !important;" : "")">
+                                                @day.DayName.Substring(0, Math.Min(3, day.DayName.Length))
+                                            </small>
+                                            <small style="font-size: 0.6rem; color: @barColor;">@day.AdherencePercentage.ToString("F0")%</small>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="d-flex justify-content-center gap-3 mt-2">
+                                    <small><span style="display: inline-block; width: 10px; height: 10px; background: #28a745; border-radius: 2px;"></span> Taken</small>
+                                    <small><span style="display: inline-block; width: 10px; height: 10px; background: #dc3545; border-radius: 2px;"></span> Missed</small>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">Click refresh to load 7-day medication history</p>
+                            }
+                        </div>
+                    </div>
+
+                    @if (agentInfo != null)
+                    {
+                        <div class="card shadow-sm border-0 mb-2" style="border-radius: 15px;">
+                            <div class="card-body" style="background: #ffffff;">
+                                <h6 class="fw-bold text-success">
+                                    <i class="bi bi-robot me-2"></i> AI Agent Info
+                                </h6>
+                                <p class="mb-1"><strong>Specialty:</strong> @agentInfo.Specialty</p>
+                                <p class="mb-0">
+                                    <strong>Status:</strong> 
+                                    @if (agentInfo.IsAgentAvailable)
+                                    {
+                                        <span class="text-success"><i class="bi bi-check-circle me-1"></i>Available</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning"><i class="bi bi-exclamation-circle me-1"></i>Unavailable</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@* Prescription Edit Popup Modal *@
+@if (showPrescriptionPopup)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header" style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-medical me-2"></i>Edit Prescription
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="ClosePrescriptionPopup"></button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success"><i class="bi bi-clipboard2-pulse me-1"></i>Diagnosis</label>
+                        <textarea class="form-control" rows="2" @bind="prescriptionData.Diagnosis"></textarea>
+                    </div>
+                    
+                    @* Medicines Section with Individual Controls *@
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold text-success mb-0"><i class="bi bi-capsule me-1"></i>Medicines</label>
+                            <button type="button" class="btn btn-success btn-sm" @onclick="AddMedicineEntry">
+                                <i class="bi bi-plus-circle me-1"></i>Add Medicine
+                            </button>
+                        </div>
+                        
+                        @if (medicineEntries.Count == 0)
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>Click "Add Medicine" to add medicines to the prescription
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var (medicine, index) in medicineEntries.Select((m, i) => (m, i)))
+                            {
+                                <div class="card mb-2" style="border: 1px solid #d8f3df; border-radius: 10px;">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="row g-2 align-items-center">
+                                            @* Medicine Name *@
+                                            <div class="col-md-3">
+                                                <label class="form-label small text-muted mb-1">Medicine Name</label>
+                                                <input type="text" class="form-control form-control-sm" 
+                                                       placeholder="e.g., Panadol"
+                                                       @bind="medicine.Name" />
+                                            </div>
+                                            
+                                            @* Quantity with up/down buttons *@
+                                            <div class="col-md-2">
+                                                <label class="form-label small text-muted mb-1">Qty</label>
+                                                <div class="input-group input-group-sm">
+                                                    <button type="button" class="btn btn-outline-secondary" 
+                                                            @onclick="() => DecreaseMedicineQty(index)"
+                                                            disabled="@(medicine.Quantity <= 1)">
+                                                        <i class="bi bi-dash"></i>
+                                                    </button>
+                                                    <input type="text" class="form-control text-center" 
+                                                           value="@medicine.Quantity" readonly 
+                                                           style="max-width: 50px;" />
+                                                    <button type="button" class="btn btn-outline-secondary" 
+                                                            @onclick="() => IncreaseMedicineQty(index)">
+                                                        <i class="bi bi-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            @* Duration in Days *@
+                                            <div class="col-md-2">
+                                                <label class="form-label small text-muted mb-1">Duration (Days)</label>
+                                                <div class="input-group input-group-sm">
+                                                    <button type="button" class="btn btn-outline-secondary" 
+                                                            @onclick="() => DecreaseMedicineDuration(index)"
+                                                            disabled="@(medicine.DurationDays <= 1)">
+                                                        <i class="bi bi-dash"></i>
+                                                    </button>
+                                                    <input type="text" class="form-control text-center" 
+                                                           value="@medicine.DurationDays" readonly 
+                                                           style="max-width: 50px;" />
+                                                    <button type="button" class="btn btn-outline-secondary" 
+                                                            @onclick="() => IncreaseMedicineDuration(index)">
+                                                        <i class="bi bi-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            @* Timing Checkboxes *@
+                                            <div class="col-md-3">
+                                                <label class="form-label small text-muted mb-1">When to Take</label>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               id="@($"morning_{index}")" @bind="medicine.Morning">
+                                                        <label class="form-check-label small" for="@($"morning_{index}")">
+                                                            <i class="bi bi-sunrise text-warning"></i> Morning
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               id="@($"afternoon_{index}")" @bind="medicine.Afternoon">
+                                                        <label class="form-check-label small" for="@($"afternoon_{index}")">
+                                                            <i class="bi bi-sun text-orange"></i> Afternoon
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               id="@($"evening_{index}")" @bind="medicine.Evening">
+                                                        <label class="form-check-label small" for="@($"evening_{index}")">
+                                                            <i class="bi bi-sunset text-primary"></i> Evening
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               id="@($"night_{index}")" @bind="medicine.Night">
+                                                        <label class="form-check-label small" for="@($"night_{index}")">
+                                                            <i class="bi bi-moon-stars text-dark"></i> Night
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            @* Instructions *@
+                                            <div class="col-md-2">
+                                                <label class="form-label small text-muted mb-1">Instructions</label>
+                                                <input type="text" class="form-control form-control-sm" 
+                                                       placeholder="e.g., After meal"
+                                                       @bind="medicine.Instructions" />
+                                            </div>
+                                            
+                                            @* Delete button *@
+                                            <div class="col-md-1 text-end">
+                                                <label class="form-label small text-muted mb-1">&nbsp;</label>
+                                                <button type="button" class="btn btn-outline-danger btn-sm d-block" 
+                                                        @onclick="() => RemoveMedicineEntry(index)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success"><i class="bi bi-info-circle me-1"></i>Usage Instructions</label>
+                        <textarea class="form-control" rows="2" @bind="prescriptionData.Usage"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success"><i class="bi bi-activity me-1"></i>Tests</label>
+                        <textarea class="form-control" rows="2" @bind="prescriptionData.Tests"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success"><i class="bi bi-lightbulb me-1"></i>Advice</label>
+                        <textarea class="form-control" rows="2" @bind="prescriptionData.Advice"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success"><i class="bi bi-sticky me-1"></i>Notes</label>
+                        <textarea class="form-control" rows="2" @bind="prescriptionData.Notes"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success"><i class="bi bi-calendar-check me-1"></i>Follow Up</label>
+                        <input type="text" class="form-control" @bind="prescriptionData.FollowUp" placeholder="e.g., 2 weeks" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="ClosePrescriptionPopup">
+                        <i class="bi bi-x-circle me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" @onclick="ConfirmAndGeneratePrescription" disabled="@isSavingPrescription">
+                        @if (isSavingPrescription)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle me-1"></i>
+                            <span>Confirm & Generate</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Prescription Preview Popup *@
+@if (showPrescriptionPreview)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header" style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-medical me-2"></i>Prescription Preview
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="ClosePrescriptionPreview"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="prescriptionContent" style="background: white;">
+                        @((MarkupString)prescriptionHtml)
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="ClosePrescriptionPreview">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="PrintPrescription">
+                        <i class="bi bi-printer me-1"></i>Print
+                    </button>
+                    <button type="button" class="btn btn-success" @onclick="SendPrescription" disabled="@isSendingPrescription">
+                        @if (isSendingPrescription)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            <span>Sending...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-send me-1"></i>
+                            <span>Send</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Patient Reports Modal *@
+@if (showPatientReportsModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header" style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-medical me-2"></i>Patient Prescriptions
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="ClosePatientReportsModal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                    @if (patientReports.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-file-earmark-x display-1 text-muted"></i>
+                            <p class="text-muted mt-3">No prescriptions found for this patient.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var report in patientReports)
+                        {
+                            <div class="card mb-3 shadow-sm border-start border-success border-4" style="border-radius: 10px;">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <span class="badge" style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                                        <i class="bi bi-calendar-event me-1"></i>@report.PrescriptionDate
+                                    </span>
+                                    <a href="@report.PrescriptionUrl" target="_blank" class="btn btn-sm btn-success">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong class="text-success"><i class="bi bi-person-badge me-1"></i>Doctor:</strong> @report.DoctorName</p>
+                                            <p class="mb-1 text-muted small">@report.DoctorSpecialty</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong class="text-primary"><i class="bi bi-clipboard2-pulse me-1"></i>Diagnosis:</strong></p>
+                                            <p class="mb-0 small">@(report.Diagnosis ?? "N/A")</p>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(report.Medicines))
+                                    {
+                                        <hr class="my-2" />
+                                        <p class="mb-0 small"><strong class="text-success"><i class="bi bi-capsule me-1"></i>Medicines:</strong> @(report.Medicines.Length > 150 ? report.Medicines.Substring(0, 150) + "..." : report.Medicines)</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="ClosePatientReportsModal">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Patient History Modal *@
+@if (showPatientHistoryModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header" style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock-history me-2"></i>Patient Full History
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="ClosePatientHistoryModal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                    @if (patientHistoryEntries.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-journal-x display-1 text-muted"></i>
+                            <p class="text-muted mt-3">No history records found for this patient.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var entry in patientHistoryEntries)
+                        {
+                            <div class="card mb-3 shadow-sm border-start border-success border-4" style="border-radius: 10px;">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <span class="badge" style="background: linear-gradient(90deg, #2e7d32, #66bb6a); color: white;">
+                                        <i class="bi bi-calendar-event me-1"></i>@entry.Date
+                                    </span>
+                                    <span class="badge bg-secondary">@entry.Type</span>
+                                </div>
+                                <div class="card-body py-2">
+                                    @if (!string.IsNullOrEmpty(entry.Diagnosis))
+                                    {
+                                        <p class="mb-1"><strong class="text-success"><i class="bi bi-clipboard2-pulse me-1"></i>Diagnosis:</strong> @entry.Diagnosis</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(entry.Medicines))
+                                    {
+                                        <p class="mb-1"><strong class="text-success"><i class="bi bi-capsule me-1"></i>Medicines:</strong> @entry.Medicines</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(entry.Advice))
+                                    {
+                                        <p class="mb-1"><strong class="text-success"><i class="bi bi-lightbulb me-1"></i>Advice:</strong> @entry.Advice</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(entry.FollowUp))
+                                    {
+                                        <p class="mb-1"><strong class="text-success"><i class="bi bi-calendar-check me-1"></i>Follow-up:</strong> @entry.FollowUp</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(entry.Summary))
+                                    {
+                                        <hr class="my-2" />
+                                        <p class="mb-0 small text-muted"><strong><i class="bi bi-card-text me-1"></i>Summary:</strong> @entry.Summary</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="ClosePatientHistoryModal">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Saved Prescriptions Modal *@
+@if (showSavedPrescriptionsModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #6ab04c; color: white;">
+                    <h5 class="modal-title">
+                        <i class="bi bi-folder2-open me-2"></i>Saved Prescriptions
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseSavedPrescriptionsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (savedPrescriptions.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-folder-x display-1 text-muted"></i>
+                            <p class="text-muted mt-3">No saved prescriptions found for this patient.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row row-cols-1 row-cols-md-2 g-3">
+                            @foreach (var prescription in savedPrescriptions)
+                            {
+                                <div class="col">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar me-1"></i>@prescription.PrescriptionDate
+                                            </small>
+                                            <span class="badge bg-success">@prescription.FileType</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-1"><strong>Doctor:</strong> @prescription.DoctorName</p>
+                                            <p class="mb-1 text-muted small">@prescription.DoctorSpecialty</p>
+                                            <hr />
+                                            <p class="mb-1"><strong>Diagnosis:</strong></p>
+                                            <p class="small text-truncate">@(prescription.Diagnosis ?? "N/A")</p>
+                                        </div>
+                                        <div class="card-footer bg-white border-top-0">
+                                            <a href="@prescription.PrescriptionUrl" target="_blank" class="btn btn-outline-primary btn-sm w-100">
+                                                <i class="bi bi-eye me-1"></i>View Prescription
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseSavedPrescriptionsModal">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+    window.captureElementAsBase64 = async function(elementId) {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            console.error('Element not found:', elementId);
+            return null;
+        }
+        
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            });
+            return canvas.toDataURL('image/png');
+        } catch (error) {
+            console.error('Error capturing element:', error);
+            return null;
+        }
+    };
+</script>
+
+
+<style>
+    @@media (max-width: 768px) {
+        /* make sidebars flow naturally on small screens */
+        #chatSidebar > .border,
+        #patientInfoSidebar > .border {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        /* let main chat area expand and remove fixed scroll limits */
+        .flex-grow-1.overflow-auto { max-height: none !important; }
+
+        /* stack message input and make controls full width */
+        .p-2.d-flex.align-items-center.border-top { flex-direction: column; gap: .5rem; }
+        .p-2.d-flex.align-items-center .form-control { width: 100%; }
+        .p-2.d-flex.align-items-center .btn { width: 100%; }
+
+        /* make small header/action buttons full width */
+        .btn.btn-success.btn-sm.d-flex,
+        .d-flex.align-items-center.gap-2 .btn { width: 100% !important; }
+    }
+
+    @@media (max-width: 480px) {
+        .text-truncate { max-width: 140px; }
+        .dr-upload-area, .classifier-upload-area { padding: 1.5rem; }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string patientId { get; set; } = string.Empty;
+
+    private PatientDtoResponse? patientDtoResponse = new PatientDtoResponse();
+    private NetcodeHubToast? ToastComponent;
+    private AppointmentModelDtos? patientConfirmedAppointment;
+    private AppointmentModelDtos? patientInProgressAppointment;
+
+    // Chat state
+    private List<ChatSummary> chatList = new();
+    private ChatModel? currentChat;
+    private string currentChatId = string.Empty;
+    private string messageInput = string.Empty;
+    private AgentInfoResponse? agentInfo;
+
+    // Loading states
+    private bool isLoadingPatient = true;
+    private bool isLoadingChats = true;
+    private bool isCreatingChat = false;
+    private bool isSendingMessage = false;
+
+    // Ophthalmologist tabs state
+    private string activeTab = "agent";
+    private bool isUploadingDR = false;
+    private bool isUploadingClassifier = false;
+    private string drResult = string.Empty;
+    private double drConfidence = 0;
+    private Dictionary<string, double> drProbabilities = new();
+    private string? drPreviewImageUrl;
+
+    // Prescription state
+    private bool isGeneratingPrescription = false;
+    private bool showPrescriptionPopup = false;
+    private bool showPrescriptionPreview = false;
+    private bool isSavingPrescription = false;
+    private bool isSendingPrescription = false;
+    private bool isLoadingSavedPrescriptions = false;
+    private bool showSavedPrescriptionsModal = false;
+
+    // Referral state
+    private bool isReferring = false;
+    private string selectedReferralSpecialty = "";
+    private bool hasPrescriptionGenerated = false;
+
+    private List<SavedPrescription> savedPrescriptions = new();
+    private PrescriptionData prescriptionData = new();
+    private List<MedicineEntry> medicineEntries = new();
+    private string prescriptionHtml = string.Empty;
+    private string? doctorName;
+    private string? doctorId;
+    private string? doctorSpecialty;
+    private string? doctorClinicAddress;
+    private string classifierResult = string.Empty;
+    private double classifierConfidence = 0;
+    private Dictionary<string, double> classifierProbabilities = new();
+    private string? classifierPreviewImageUrl;
+    private bool isRefreshingHistory = false;
+    private DoctorProfile? doctorProfile;
+
+    @* M-4 APPOINTMENT STARTS *@
+    private async Task StartSessionByPatient()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.PostAsync($"api/Appointment/start/{patientId}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                ToastComponent?.ShowSuccessToast("Success", "Session started successfully");
+                await LoadPatientDetails();
+                await LoadPatientAppointments();
+                StateHasChanged();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", BuildStartSessionErrorMessage(error));
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Failed to start session: {ex.Message}");
+        }
+    }
+
+    @* M-4 APPOINTMENT COMPLETE *@
+
+    private async Task CompleteByPatient()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            
+            // Check if prescription is generated
+            bool canComplete = hasPrescriptionGenerated;
+
+            if (!canComplete)
+            {
+                var presResponse = await client.GetAsync($"api/Prescription/patient/{patientId}");
+                if (presResponse.IsSuccessStatusCode)
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var responseContent = await presResponse.Content.ReadAsStringAsync();
+                    var result = System.Text.Json.JsonSerializer.Deserialize<SavedPrescriptionsResponse>(responseContent, options);
+                    
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        // Allow completion if a prescription was created today for this patient
+                        if (result.Data.Any(p => p.CreatedAt.Date == DateTime.UtcNow.Date || p.CreatedAt.Date == DateTime.Today))
+                        {
+                            canComplete = true;
+                        }
+                    }
+                }
+            }
+
+            if (!canComplete)
+            {
+                ToastComponent?.ShowDangerToast("Action Required", "You must generate and send a prescription before completing the appointment.");
+                return;
+            }
+
+            var response = await client.PostAsync($"api/Appointment/complete/{patientId}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                ToastComponent?.ShowSuccessToast("Success", "Appointment marked as completed");
+                await LoadPatientDetails();
+                await LoadPatientAppointments();
+                StateHasChanged();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", $"Could not complete appointment: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Failed to complete appointment: {ex.Message}");
+        }
+    }
+
+    private bool CanStartPatientAppointment()
+    {
+        if (patientConfirmedAppointment == null)
+        {
+            return false;
+        }
+
+        var appointmentTime = patientConfirmedAppointment.SlotStartTime ?? patientConfirmedAppointment.AppointmentDate;
+
+        if (appointmentTime.Kind == DateTimeKind.Unspecified)
+        {
+            appointmentTime = DateTime.SpecifyKind(appointmentTime, DateTimeKind.Utc);
+        }
+        else if (appointmentTime.Kind == DateTimeKind.Local)
+        {
+            appointmentTime = appointmentTime.ToUniversalTime();
+        }
+
+        return DateTime.UtcNow >= appointmentTime;
+    }
+
+    private bool CanCompletePatientAppointment()
+    {
+        return patientInProgressAppointment != null;
+    }
+
+    private bool IsSessionActiveOrReadyToStart()
+    {
+        return patientInProgressAppointment != null || CanStartPatientAppointment();
+    }
+
+    private string BuildStartSessionErrorMessage(string responseContent)
+    {
+        if (string.IsNullOrWhiteSpace(responseContent))
+        {
+            return "Could not start session.";
+        }
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(responseContent);
+            var root = doc.RootElement;
+            var message = TryGetStringProperty(root, "message") ?? "Could not start session.";
+
+            if (TryGetUtcDateTime(root, "appointmentStartUtc", out var startUtc)
+                && TryGetUtcDateTime(root, "appointmentEndUtc", out var endUtc))
+            {
+                var startLocal = startUtc.ToLocalTime();
+                var endLocal = endUtc.ToLocalTime();
+                return $"Session can only be started between {startLocal:hh:mm tt} and {endLocal:hh:mm tt} (local time).";
+            }
+
+            return message;
+        }
+        catch
+        {
+            return responseContent;
+        }
+    }
+
+    private static string? TryGetStringProperty(System.Text.Json.JsonElement root, string propertyName)
+    {
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                return prop.Value.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryGetUtcDateTime(System.Text.Json.JsonElement root, string propertyName, out DateTime value)
+    {
+        value = default;
+
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (!string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var rawValue = prop.Value.GetString();
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return false;
+            }
+
+            return DateTime.TryParse(
+                rawValue,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out value);
+        }
+
+        return false;
+    }
+
+    // Patient Reports and History Modal state
+    private bool showPatientReportsModal = false;
+    private bool showPatientHistoryModal = false;
+    private bool isLoadingPatientReports = false;
+    private bool isLoadingPatientFullHistory = false;
+    private List<SavedPrescription> patientReports = new();
+    private List<HistoryEntry> patientHistoryEntries = new();
+
+    // Medication Adherence tracking
+    private bool isLoadingAdherence = false;
+    private List<MedicationAdherenceData> medicationAdherenceData = new();
+    
+    // Daily medication history for bar graph
+    private bool isLoadingDailyHistory = false;
+    private List<DailyHistoryStat> dailyHistoryData = new();
+
+    // Check if the doctor is an ophthalmologist
+    private bool IsOphthalmologist()
+    {
+        if (agentInfo?.Specialty == null) return false;
+        var specialty = agentInfo.Specialty.ToLower();
+        return specialty.Contains("ophthalmolog") || specialty.Contains("opthamolog");
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        StateHasChanged();
+    }
+
+    private void ClearDRResult()
+    {
+        drResult = string.Empty;
+        drConfidence = 0;
+        drProbabilities.Clear();
+        drPreviewImageUrl = null;
+        StateHasChanged();
+    }
+
+    private void ClearClassifierResult()
+    {
+        classifierResult = string.Empty;
+        classifierConfidence = 0;
+        classifierProbabilities.Clear();
+        classifierPreviewImageUrl = null;
+        StateHasChanged();
+    }
+
+@* M-3 MODEL CALLING *@
+    private async Task HandleDRImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            // Validate file type
+            var allowedTypes = new[] { "image/png", "image/jpeg", "image/jpg" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                ToastComponent?.ShowDangerToast("Invalid File", "Only PNG, JPG, and JPEG images are supported.");
+                return;
+            }
+
+            isUploadingDR = true;
+            StateHasChanged();
+
+            // Read file content for preview and upload
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+
+            // Create preview image URL
+            var base64 = Convert.ToBase64String(fileBytes);
+            drPreviewImageUrl = $"data:{file.ContentType};base64,{base64}";
+            StateHasChanged();
+
+            // Create multipart form data
+            // Step 1: Validate image via n8n webhook (field name: "data") for DR images
+            try
+            {
+                using var validationClient = HttpClientFactory.CreateClient();
+                validationClient.Timeout = TimeSpan.FromSeconds(30);
+
+                using var validationContent = new MultipartFormDataContent();
+                var dataContent = new ByteArrayContent(fileBytes);
+                dataContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                validationContent.Add(dataContent, "data", file.Name);
+
+                var validationUrl = "https://n8n-14pv.onrender.com/webhook/86d84c0e-a39d-459d-9d16-6d87a2e25b0a";
+                var validationResponse = await validationClient.PostAsync(validationUrl, validationContent);
+
+                if (!validationResponse.IsSuccessStatusCode)
+                {
+                    var err = await validationResponse.Content.ReadAsStringAsync();
+                    Console.Error.WriteLine($"n8n DR validation error: {err}");
+                    ToastComponent?.ShowDangerToast("Validation Error", $"Image validation failed: {validationResponse.StatusCode}");
+                    return;
+                }
+
+                var validationText = (await validationResponse.Content.ReadAsStringAsync()).Trim();
+                Console.WriteLine($"n8n DR validation response: {validationText}");
+
+                // If not plain-text "Retina", show centered modal and abort
+                if (!string.Equals(validationText, "Retina", StringComparison.OrdinalIgnoreCase))
+                {
+                    await ShowCenteredModal("It looks like the image of a geometric diagram. Please upload a retinal fundus image.");
+                    return;
+                }
+            }
+            catch (TaskCanceledException tce)
+            {
+                ToastComponent?.ShowDangerToast("Validation Timeout", "Image validation timed out. Please try again later.");
+                Console.Error.WriteLine($"n8n DR validation timeout: {tce.Message}");
+                return;
+            }
+
+            // Step 2: Validation passed - send to DR API (existing behavior)
+            using var httpClient = HttpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(120);
+            
+            using var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(fileBytes);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            // Send to DR API
+            var response = await httpClient.PostAsync(
+                "https://zamliskill--dr-efficientnetb7-api-fastapi-app.modal.run/predict", 
+                content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"DR API Raw Response: {responseContent}");
+                
+                // Parse the detailed response
+                ParseDRDetailedResult(responseContent);
+                
+                ToastComponent?.ShowSuccessToast("Success", "Image analyzed successfully!");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", $"Failed to analyze image: {response.StatusCode}");
+                Console.Error.WriteLine($"DR API Error: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Error uploading image: {ex.Message}");
+            Console.Error.WriteLine($"DR Upload Exception: {ex}");
+        }
+        finally
+        {
+            isUploadingDR = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearClassifierPreview()
+    {
+        classifierPreviewImageUrl = null;
+        StateHasChanged();
+    }
+
+    // Centered modal helper (JS interop)
+    private TaskCompletionSource<bool>? _modalTcs;
+    private DotNetObjectReference<object>? _modalDotNetRef;
+
+    [JSInvokable]
+    public Task OnModalClosed()
+    {
+        _modalTcs?.TrySetResult(true);
+        return Task.CompletedTask;
+    }
+
+    private async Task ShowCenteredModal(string message)
+    {
+        _modalTcs = new TaskCompletionSource<bool>();
+        _modalDotNetRef = DotNetObjectReference.Create((object)this);
+
+        // Define the JS function that will create a centered modal overlay
+        var jsDef = @"(function(){
+            window.showCenteredModal = function(dotnetRef, message){
+                try{
+                    var overlay = document.createElement('div');
+                    overlay.id = 'blazor-centered-modal-overlay';
+                    overlay.style.position = 'fixed';
+                    overlay.style.left = '0';
+                    overlay.style.top = '0';
+                    overlay.style.width = '100%';
+                    overlay.style.height = '100%';
+                    overlay.style.background = 'rgba(0,0,0,0.45)';
+                    overlay.style.display = 'flex';
+                    overlay.style.alignItems = 'center';
+                    overlay.style.justifyContent = 'center';
+                    overlay.style.zIndex = '2147483647';
+
+                    var modal = document.createElement('div');
+                    modal.style.background = '#ffffff';
+                    modal.style.padding = '24px';
+                    modal.style.borderRadius = '10px';
+                    modal.style.maxWidth = '640px';
+                    modal.style.width = '80%';
+                    modal.style.boxShadow = '0 12px 40px rgba(0,0,0,0.25)';
+                    modal.style.textAlign = 'center';
+
+                    var p = document.createElement('p');
+                    p.style.margin = '0 0 18px';
+                    p.style.fontSize = '16px';
+                    p.style.lineHeight = '1.4';
+                    p.style.color = '#222';
+                    p.innerText = message;
+
+                    var btn = document.createElement('button');
+                    btn.innerText = 'OK';
+                    btn.style.padding = '10px 18px';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '6px';
+                    btn.style.cursor = 'pointer';
+                    btn.style.background = '#2e7d32';
+                    btn.style.color = '#fff';
+                    btn.style.fontSize = '14px';
+
+                    btn.onclick = function(){
+                        try{ document.body.removeChild(overlay); }catch(e){}
+                        try{ dotnetRef.invokeMethodAsync('OnModalClosed'); }catch(e){}
+                    };
+
+                    modal.appendChild(p);
+                    modal.appendChild(btn);
+                    overlay.appendChild(modal);
+                    document.body.appendChild(overlay);
+                }catch(e){ console.error(e); }
+            };
+        })();";
+
+        // Register the JS function
+        await JSRuntime.InvokeVoidAsync("eval", jsDef);
+
+        // Call it and wait for the user's click
+        await JSRuntime.InvokeVoidAsync("showCenteredModal", _modalDotNetRef, message);
+        await _modalTcs.Task;
+
+        // Cleanup
+        _modalDotNetRef?.Dispose();
+        _modalDotNetRef = null;
+        _modalTcs = null;
+    }
+
+    private string GetDiseaseDescription(string prediction)
+    {
+        var descriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "cataract", "Cataract is a clouding of the eye's natural lens, which lies behind the iris and the pupil. It is the most common cause of vision loss in people over age 40 and is the principal cause of blindness in the world. Early symptoms include blurry vision, colors appearing faded, and increased sensitivity to glare." },
+            { "diabetic_retinopathy", "Diabetic Retinopathy is a diabetes complication that affects the eyes. It's caused by damage to the blood vessels of the light-sensitive tissue at the back of the eye (retina). Early detection through regular eye exams and good diabetes management can prevent or delay vision loss." },
+            { "glaucoma", "Glaucoma is a group of eye conditions that damage the optic nerve, often caused by abnormally high pressure in the eye. It's one of the leading causes of irreversible blindness. Regular eye exams that include measurements of eye pressure are important for early detection." },
+            { "normal", "The eye appears healthy with no signs of the screened conditions (cataract, diabetic retinopathy, or glaucoma). However, regular eye check-ups are still recommended to maintain eye health and catch any potential issues early." }
+        };
+
+        return descriptions.TryGetValue(prediction.Replace(" ", "_"), out var desc) 
+            ? desc 
+            : "No additional information available for this condition.";
+    }
+
+    private void ClearDRPreview()
+    {
+        drPreviewImageUrl = null;
+        StateHasChanged();
+    }
+
+    private string GetDRGradeLabel(string grade)
+    {
+        var labels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "0", "No DR (Grade 0)" },
+            { "1", "Mild NPDR (Grade 1)" },
+            { "2", "Moderate NPDR (Grade 2)" },
+            { "3", "Severe NPDR (Grade 3)" },
+            { "4", "Proliferative DR (Grade 4)" }
+        };
+
+        return labels.TryGetValue(grade, out var label) ? label : grade;
+    }
+
+    private string GetDRDescription(string grade)
+    {
+        var descriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "0", "No Diabetic Retinopathy: The retina shows no signs of diabetic retinopathy. This is a healthy eye status for patients with diabetes." },
+            { "1", "Mild NPDR (Non-Proliferative): The earliest stage of DR with small microaneurysms or dot/blot hemorrhages. Careful monitoring is recommended." },
+            { "2", "Moderate NPDR: More extensive retinal damage with dot/blot hemorrhages, hard exudates, and venous beading. Regular follow-ups are essential." },
+            { "3", "Severe NPDR: Significant retinal damage with major hemorrhages and exudates. Urgent medical intervention may be needed to prevent vision loss." },
+            { "4", "Proliferative DR: Advanced stage with new blood vessel growth (neovascularization) and high risk of vitreous hemorrhage and retinal detachment. Immediate treatment is necessary." }
+        };
+
+        return descriptions.TryGetValue(grade.Replace(" ", "").Replace("(", "").Replace(")", ""), out var desc) 
+            ? desc 
+            : "Please consult with an ophthalmologist for proper diagnosis and treatment recommendations.";
+    }
+
+    private async Task HandleClassifierImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            // Validate file type
+            var allowedTypes = new[] { "image/png", "image/jpeg", "image/jpg" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                ToastComponent?.ShowDangerToast("Invalid File", "Only PNG, JPG, and JPEG images are supported.");
+                return;
+            }
+
+            isUploadingClassifier = true;
+            StateHasChanged();
+
+            // Read file content for preview and upload
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+
+            // Create preview image URL
+            var base64 = Convert.ToBase64String(fileBytes);
+            classifierPreviewImageUrl = $"data:{file.ContentType};base64,{base64}";
+            StateHasChanged();
+
+            // Step 1: Validate image via n8n webhook (field name: "data")
+            try
+            {
+                using var validationClient = HttpClientFactory.CreateClient();
+                validationClient.Timeout = TimeSpan.FromSeconds(30);
+
+                using var validationContent = new MultipartFormDataContent();
+                var dataContent = new ByteArrayContent(fileBytes);
+                dataContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                validationContent.Add(dataContent, "data", file.Name);
+
+                var validationUrl = "https://n8n-14pv.onrender.com/webhook/86d84c0e-a39d-459d-9d16-6d87a2e25b0a";
+                var validationResponse = await validationClient.PostAsync(validationUrl, validationContent);
+
+                if (!validationResponse.IsSuccessStatusCode)
+                {
+                    var err = await validationResponse.Content.ReadAsStringAsync();
+                    ToastComponent?.ShowDangerToast("Validation Error", $"Image validation failed: {validationResponse.StatusCode}");
+                    Console.Error.WriteLine($"n8n validation error: {err}");
+                    return;
+                }
+
+                var validationText = (await validationResponse.Content.ReadAsStringAsync()).Trim();
+                Console.WriteLine($"n8n validation response: {validationText}");
+
+                // If the webhook does not return plain text "Retina" (case-insensitive), abort.
+                if (!string.Equals(validationText, "Retina", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Show custom centered modal and abort flow when image is not a retina
+                    await ShowCenteredModal("It looks like the image of a geometric diagram. Please upload a retinal fundus image.");
+                    return;
+                }
+            }
+            catch (TaskCanceledException tce)
+            {
+                ToastComponent?.ShowDangerToast("Validation Timeout", "Image validation timed out. Please try again later.");
+                Console.Error.WriteLine($"n8n validation timeout: {tce.Message}");
+                return;
+            }
+
+            // Step 2: Image validated as retina — send to Eye Disease Classifier API (existing behavior)
+            using var httpClient = HttpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(120);
+            
+            using var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(fileBytes);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await httpClient.PostAsync(
+                "https://waseerusman2--eye-disease-classifier-fastapi-app.modal.run/predict",
+                content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Classifier API Raw Response: {responseContent}");
+                
+                // Parse the detailed response
+                ParseClassifierDetailedResult(responseContent);
+                
+                ToastComponent?.ShowSuccessToast("Success", "Image classified successfully!");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", $"Failed to classify image: {response.StatusCode}");
+                Console.Error.WriteLine($"Classifier API Error: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Error uploading image: {ex.Message}");
+            Console.Error.WriteLine($"Classifier Upload Exception: {ex}");
+        }
+        finally
+        {
+            isUploadingClassifier = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ParseClassifierDetailedResult(string jsonResponse)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonResponse);
+            var root = doc.RootElement;
+
+            // Get prediction
+            if (root.TryGetProperty("prediction", out var predField))
+            {
+                classifierResult = predField.GetString() ?? "";
+            }
+
+            // Get confidence
+            if (root.TryGetProperty("confidence", out var confField))
+            {
+                classifierConfidence = confField.GetDouble();
+            }
+
+            // Get probabilities
+            classifierProbabilities.Clear();
+            if (root.TryGetProperty("probabilities", out var probField))
+            {
+                foreach (var prop in probField.EnumerateObject())
+                {
+                    classifierProbabilities[prop.Name] = prop.Value.GetDouble();
+                }
+            }
+
+            // If no direct fields found, try to parse generic format
+            if (string.IsNullOrEmpty(classifierResult))
+            {
+                classifierResult = ParseHighestProbabilityResult(jsonResponse, "classifier");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error parsing classifier result: {ex.Message}");
+            classifierResult = "Error parsing result";
+        }
+    }
+
+    private void ParseDRDetailedResult(string jsonResponse)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonResponse);
+            var root = doc.RootElement;
+
+            // Get prediction
+            if (root.TryGetProperty("prediction", out var predField))
+            {
+                drResult = predField.GetString() ?? "";
+            }
+
+            // Get confidence
+            if (root.TryGetProperty("confidence", out var confField))
+            {
+                drConfidence = confField.GetDouble();
+            }
+
+            // Get probabilities
+            drProbabilities.Clear();
+            if (root.TryGetProperty("probabilities", out var probField))
+            {
+                foreach (var prop in probField.EnumerateObject())
+                {
+                    drProbabilities[prop.Name] = prop.Value.GetDouble();
+                }
+            }
+
+            // If no direct fields found, try to parse generic format
+            if (string.IsNullOrEmpty(drResult))
+            {
+                drResult = ParseHighestProbabilityResult(jsonResponse, "dr");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error parsing DR result: {ex.Message}");
+            drResult = "Error parsing result";
+        }
+    }
+
+    // DR Grade mappings (0-4 for Diabetic Retinopathy severity)
+    private static readonly Dictionary<string, string> DrGradeLabels = new()
+    {
+        { "0", "No Diabetic Retinopathy" },
+        { "1", "Mild NPDR" },
+        { "2", "Moderate NPDR" },
+        { "3", "Severe NPDR" },
+        { "4", "Proliferative DR" }
+    };
+
+    // Eye Disease Classifier mappings
+    private static readonly Dictionary<string, string> EyeDiseaseLabels = new()
+    {
+        { "0", "Normal" },
+        { "1", "Cataract" },
+        { "2", "Glaucoma" },
+        { "3", "Diabetic Retinopathy" },
+        { "cataract", "Cataract" },
+        { "glaucoma", "Glaucoma" },
+        { "diabetic_retinopathy", "Diabetic Retinopathy" },
+        { "normal", "Normal" }
+    };
+
+    private string GetDrLabel(string label)
+    {
+        if (DrGradeLabels.TryGetValue(label, out var drLabel))
+            return drLabel;
+        return label;
+    }
+
+    private string GetEyeDiseaseLabel(string label)
+    {
+        // Check numeric labels first
+        if (EyeDiseaseLabels.TryGetValue(label, out var eyeLabel))
+            return eyeLabel;
+        
+        // Then check case-insensitive text labels
+        var lowerLabel = label.ToLowerInvariant();
+        if (EyeDiseaseLabels.TryGetValue(lowerLabel, out var eyeLabelLower))
+            return eyeLabelLower;
+        
+        return label;
+    }
+
+    private string ParseHighestProbabilityResult(string jsonResponse, string resultType = "dr")
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonResponse);
+            var root = doc.RootElement;
+
+            // PRIORITY 1: Check for predicted_label field directly (most APIs return this)
+            if (root.TryGetProperty("predicted_label", out var predictedLabel))
+            {
+                var label = predictedLabel.GetString();
+                if (!string.IsNullOrEmpty(label))
+                    return label;
+            }
+
+            // PRIORITY 2: Check for prediction/class/label fields
+            if (root.TryGetProperty("prediction", out var predField))
+            {
+                var val = predField.GetString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+            if (root.TryGetProperty("class", out var classField))
+            {
+                var val = classField.GetString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+            if (root.TryGetProperty("label", out var labelField))
+            {
+                var val = labelField.GetString();
+                if (!string.IsNullOrEmpty(val))
+                    return val;
+            }
+
+            // PRIORITY 3: Try to find predictions array or object
+            JsonElement predictions;
+            if (root.TryGetProperty("predictions", out predictions) || 
+                root.TryGetProperty("results", out predictions) ||
+                root.TryGetProperty("probabilities", out predictions))
+            {
+                // Handle array format
+                if (predictions.ValueKind == JsonValueKind.Array)
+                {
+                    string highestLabel = "";
+                    double highestProb = 0;
+                    
+                    foreach (var pred in predictions.EnumerateArray())
+                    {
+                        string label = "";
+                        double prob = 0;
+                        
+                        if (pred.TryGetProperty("label", out var labelEl))
+                            label = labelEl.GetString() ?? "";
+                        else if (pred.TryGetProperty("class", out var classEl))
+                            label = classEl.GetString() ?? "";
+                        else if (pred.TryGetProperty("name", out var nameEl))
+                            label = nameEl.GetString() ?? "";
+                        
+                        if (pred.TryGetProperty("probability", out var probEl))
+                            prob = probEl.GetDouble();
+                        else if (pred.TryGetProperty("confidence", out var confEl))
+                            prob = confEl.GetDouble();
+                        else if (pred.TryGetProperty("score", out var scoreEl))
+                            prob = scoreEl.GetDouble();
+                        
+                        if (prob > highestProb)
+                        {
+                            highestProb = prob;
+                            highestLabel = label;
+                        }
+                    }
+                    
+                    if (!string.IsNullOrEmpty(highestLabel))
+                        return resultType == "classifier" ? GetEyeDiseaseLabel(highestLabel) : GetDrLabel(highestLabel);
+                }
+                // Handle object format (key: probability)
+                else if (predictions.ValueKind == JsonValueKind.Object)
+                {
+                    string highestLabel = "";
+                    double highestProb = 0;
+                    
+                    foreach (var prop in predictions.EnumerateObject())
+                    {
+                        double prob = prop.Value.GetDouble();
+                        if (prob > highestProb)
+                        {
+                            highestProb = prob;
+                            highestLabel = prop.Name;
+                        }
+                    }
+                    
+                    if (!string.IsNullOrEmpty(highestLabel))
+                        return resultType == "classifier" ? GetEyeDiseaseLabel(highestLabel) : GetDrLabel(highestLabel);
+                }
+            }
+            
+            // Try direct object format (label: probability at root level)
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                string highestLabel = "";
+                double highestProb = 0;
+                
+                foreach (var prop in root.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Number)
+                    {
+                        double prob = prop.Value.GetDouble();
+                        if (prob > highestProb)
+                        {
+                            highestProb = prob;
+                            highestLabel = prop.Name;
+                        }
+                    }
+                }
+                
+                if (!string.IsNullOrEmpty(highestLabel))
+                    return resultType == "classifier" ? GetEyeDiseaseLabel(highestLabel) : GetDrLabel(highestLabel);
+            }
+            
+            return jsonResponse;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error parsing prediction response: {ex.Message}");
+            return jsonResponse;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            if (client.DefaultRequestHeaders.Authorization == null)
+            {
+                // Not logged in - redirect to login
+                Navigation.NavigateTo("/", true);
+                return;
+            }
+
+            // Check subscription status first
+            await CheckSubscriptionStatus();
+            
+            await LoadAllData();
+            
+            // After loading, automatically start a chat with patient context if no chats exist
+            await AutoStartChatWithContext();
+        }
+    }
+
+    private async Task CheckSubscriptionStatus()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync("api/Doctor/get/profile");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<DoctorProfileResponse>();
+                if (apiResponse != null && apiResponse.IsSuccess && apiResponse.Doctor != null)
+                {
+                    doctorProfile = apiResponse.Doctor;
+                    
+                    // Check verification status first - redirect if not verified
+                    if (!doctorProfile.IsVerified)
+                    {
+                        await JSRuntime.InvokeVoidAsync("alert", "Your account is not verified yet. Please complete your profile verification to view patient details.");
+                        Navigation.NavigateTo("/profile-setup", true);
+                        return;
+                    }
+                    
+                    // Check actual subscription status from Stripe API
+                    var subResponse = await client.GetAsync("api/Stripe/doctor/subscription-status");
+                    if (subResponse.IsSuccessStatusCode)
+                    {
+                        var subResult = await subResponse.Content.ReadFromJsonAsync<SubscriptionStatusResult>();
+                        if (subResult == null || !subResult.IsSubscribed)
+                        {
+                            await JSRuntime.InvokeVoidAsync("alert", "Please complete your subscription payment to view patient details.");
+                            Navigation.NavigateTo("/payment-due", true);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // If we can't check subscription, redirect to payment
+                        Navigation.NavigateTo("/payment-due", true);
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error checking subscription: {ex.Message}");
+        }
+    }
+
+    private class SubscriptionStatusResult
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("isSubscribed")]
+        public bool IsSubscribed { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("subscriptionStatus")]
+        public string? SubscriptionStatus { get; set; }
+    }
+
+    private async Task AutoStartChatWithContext()
+    {
+        try
+        {
+            // Check if agent is available
+            if (agentInfo?.IsAgentAvailable != true || patientDtoResponse?.Data == null)
+                return;
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            
+            // First, check if there's an existing chat with messages for this patient
+            if (chatList != null && chatList.Count > 0)
+            {
+                // Find the most recent chat that has messages (not empty)
+                var existingChat = chatList.FirstOrDefault(c => c.MessageCount > 0);
+                if (existingChat != null)
+                {
+                    // Load the existing chat and continue from where it stopped
+                    await LoadChat(existingChat.Id);
+                    ToastComponent?.ShowInfoToast("Continuing Chat", "Loaded existing consultation");
+                    return;
+                }
+            }
+            
+            // No existing chat with messages - create a new one with patient context
+            var patientName = $"{patientDtoResponse.Data.FirstName} {patientDtoResponse.Data.LastName}".Trim();
+            var initialConditions = patientDtoResponse.Data.InitialConditions ?? "";
+            var history = patientDtoResponse.Data.History ?? "";
+
+            // Build the context message - handle case when symptoms were skipped
+            var contextParts = new List<string>();
+            contextParts.Add($"Patient Name: {patientName}");
+            
+            if (!string.IsNullOrWhiteSpace(initialConditions))
+            {
+                contextParts.Add($"Initial Symptoms/Conditions: {initialConditions}");
+            }
+            else
+            {
+                // No symptoms recorded - ask the doctor to gather symptoms
+                contextParts.Add("Initial Symptoms/Conditions: Not recorded during booking. Please ask the patient about their symptoms.");
+            }
+            
+            if (!string.IsNullOrWhiteSpace(history))
+            {
+                contextParts.Add($"Medical History: {history}");
+            }
+            
+            var contextMessage = !string.IsNullOrWhiteSpace(initialConditions)
+                ? $"I am starting a consultation for a patient. Here is their information:\n\n{string.Join("\n", contextParts)}\n\nPlease acknowledge this patient information and let me know you're ready to assist with the consultation."
+                : $"I am starting a consultation for a patient. Here is their information:\n\n{string.Join("\n", contextParts)}\n\nNote: The patient did not provide symptoms during booking. Please start by asking about their current symptoms and concerns.";
+
+            // Step 1: Create chat instantly (without AI call)
+            var createRequest = new CreateChatRequest
+            {
+                PatientId = patientId,
+                Title = DateTimeHelper.GetPakistanNow().ToString("MMMM dd, yyyy"),
+                PatientName = "",  // Empty to skip AI call on create
+                InitialConditions = "",
+                History = ""
+            };
+
+            var createResponse = await client.PostAsJsonAsync("api/Chat/create", createRequest);
+            
+            if (createResponse.IsSuccessStatusCode)
+            {
+                var createResult = await createResponse.Content.ReadFromJsonAsync<ChatModelResponse>();
+                if (createResult != null && createResult.Status && createResult.Data != null)
+                {
+                    currentChat = createResult.Data;
+                    currentChatId = createResult.Data.Id;
+                    
+                    // Step 2: Show the user message immediately in UI
+                    currentChat.Chats.Add(new ChatMessage
+                    {
+                        Query = contextMessage,
+                        Response = "",  // Empty response initially
+                        Timestamp = DateTime.Now
+                    });
+                    
+                    await LoadChatList();
+                    isSendingMessage = true;  // Show "thinking" indicator
+                    StateHasChanged();
+                    await ScrollToBottom();
+
+                    // Step 3: Send message to AI and get response
+                    var sendRequest = new SendMessageRequest
+                    {
+                        PatientId = patientId,
+                        ChatId = currentChatId,
+                        Message = contextMessage
+                    };
+
+                    var sendResponse = await client.PostAsJsonAsync("api/Chat/send", sendRequest);
+                    var sendResult = await sendResponse.Content.ReadFromJsonAsync<SendMessageResponse>();
+
+                    if (sendResponse.IsSuccessStatusCode && sendResult != null && sendResult.Status)
+                    {
+                        // Step 4: Update the message with AI response
+                        var lastMsg = currentChat.Chats.LastOrDefault();
+                        if (lastMsg != null)
+                        {
+                            lastMsg.Response = sendResult.AIResponse;
+                            lastMsg.Timestamp = sendResult.Timestamp;
+                        }
+                        ToastComponent?.ShowSuccessToast("Ready", "AI Assistant ready");
+                    }
+                    else
+                    {
+                        // Remove the pending message if failed
+                        currentChat.Chats.RemoveAt(currentChat.Chats.Count - 1);
+                        ToastComponent?.ShowDangerToast("Error", sendResult?.Message ?? "Failed to get AI response");
+                    }
+                    
+                    await LoadChatList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"AutoStartChatWithContext error: {ex.Message}");
+        }
+        finally
+        {
+            isSendingMessage = false;
+            isCreatingChat = false;
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+@* LOADING ALL PATIENT DATA *@
+    private async Task LoadAllData()
+    {
+        await Task.WhenAll(
+            LoadPatientDetails(),
+            LoadPatientAppointments(),
+            LoadAgentInfo(),
+            LoadChatList()
+        );
+    }
+
+    private async Task LoadPatientDetails()
+    {
+        try
+        {
+            isLoadingPatient = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            if (client.DefaultRequestHeaders.Authorization == null)
+            {
+                ToastComponent?.ShowDangerToast("Unauthorized", "Please login again.");
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+            var response = await client.GetAsync($"api/Doctor/get/patient/{patientId}");
+            
+            Console.WriteLine($"Patient API Response Status: {response.StatusCode}");
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Patient API Response: {responseContent}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    var apiResponse = System.Text.Json.JsonSerializer.Deserialize<PatientDtoResponse>(responseContent, options);
+                    if (apiResponse != null && apiResponse.IsSuccess)
+                    {
+                        patientDtoResponse = apiResponse;
+                    }
+                    else
+                    {
+                        ToastComponent?.ShowInfoToast("Info", apiResponse?.Message ?? "Could not load patient details");
+                    }
+                }
+                catch (Exception jsonEx)
+                {
+                    Console.WriteLine($"JSON Deserialization error: {jsonEx.Message}");
+                    ToastComponent?.ShowInfoToast("Info", "Error parsing patient data");
+                }
+            }
+            else
+            {
+                ToastComponent?.ShowInfoToast("Info", $"Could not load patient details: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+            Console.Error.WriteLine($"Exception in LoadPatientDetails: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingPatient = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPatientAppointments()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync("api/Doctor/get/appointments");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            var apiResponse = await response.Content.ReadFromJsonAsync<AppointmentDtosResponse>();
+            if (apiResponse?.IsSuccess != true || apiResponse.AppointmentDtos == null)
+            {
+                return;
+            }
+
+            var patientAppointments = apiResponse.AppointmentDtos
+                .Where(a => a.PatientId == patientId)
+                .OrderBy(a => a.SlotStartTime ?? a.AppointmentDate)
+                .ToList();
+
+            patientInProgressAppointment = patientAppointments
+                .FirstOrDefault(a => string.Equals(a.Status, "In-Progress", StringComparison.OrdinalIgnoreCase));
+
+            patientConfirmedAppointment = patientAppointments
+                .FirstOrDefault(a => string.Equals(a.Status, "Confirmed", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in LoadPatientAppointments: {ex.Message}");
+        }
+    }
+
+    @* M-3 *@
+    private async Task LoadAgentInfo()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync("api/Chat/agent-info");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                agentInfo = await response.Content.ReadFromJsonAsync<AgentInfoResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in LoadAgentInfo: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+@* M-8 CALLING APIS TO GET THE CHAT LIST *@
+    private async Task LoadChatList()
+    {
+        try
+        {
+            isLoadingChats = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/Chat/patient/{patientId}/list");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ChatListResponse>();
+                if (apiResponse != null && apiResponse.Status)
+                {
+                    chatList = apiResponse.Data ?? new List<ChatSummary>();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in LoadChatList: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingChats = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadChat(string chatId)
+    {
+        try
+        {
+            currentChatId = chatId;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/Chat/{chatId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ChatModelResponse>();
+                if (apiResponse != null && apiResponse.Status)
+                {
+                    currentChat = apiResponse.Data;
+                }
+            }
+            else
+            {
+                ToastComponent?.ShowDangerToast("Error", "Could not load chat");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task CreateNewChat()
+    {
+        try
+        {
+            isCreatingChat = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            
+            // Create a fresh new chat WITHOUT patient context
+            // This ensures the new chat starts empty, not with previous content
+            var request = new CreateChatRequest
+            {
+                PatientId = patientId,
+                Title = DateTimeHelper.GetPakistanNow().ToString("MMMM dd, yyyy"),
+                PatientName = "",  // Empty - no auto context
+                InitialConditions = "",  // Empty - no auto context
+                History = ""  // Empty - no auto context
+            };
+
+            var response = await client.PostAsJsonAsync("api/Chat/create", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ChatModelResponse>();
+                if (apiResponse != null && apiResponse.Status && apiResponse.Data != null)
+                {
+                    // Reset current chat to the new empty chat
+                    currentChat = apiResponse.Data;
+                    currentChatId = apiResponse.Data.Id;
+                    await LoadChatList();
+                    ToastComponent?.ShowSuccessToast("Success", "New chat session started");
+                    await ScrollToBottom();
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", "Could not create chat");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+        finally
+        {
+            isCreatingChat = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteChat(string chatId)
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.DeleteAsync($"api/Chat/{chatId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                if (currentChatId == chatId)
+                {
+                    currentChat = null;
+                    currentChatId = string.Empty;
+                }
+                await LoadChatList();
+                ToastComponent?.ShowSuccessToast("Success", "Chat deleted");
+            }
+            else
+            {
+                ToastComponent?.ShowDangerToast("Error", "Could not delete chat");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(messageInput) || agentInfo?.IsAgentAvailable != true)
+            return;
+
+        var message = messageInput.Trim();
+        messageInput = string.Empty;
+
+        try
+        {
+            isSendingMessage = true;
+            StateHasChanged();
+            await ScrollToBottom();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var request = new SendMessageRequest
+            {
+                PatientId = patientId,
+                ChatId = currentChatId,
+                Message = message
+            };
+
+            var response = await client.PostAsJsonAsync("api/Chat/send", request);
+            var apiResponse = await response.Content.ReadFromJsonAsync<SendMessageResponse>();
+
+            if (response.IsSuccessStatusCode && apiResponse != null && apiResponse.Status)
+            {
+                // If this was a new chat, update the current chat ID
+                if (string.IsNullOrEmpty(currentChatId))
+                {
+                    currentChatId = apiResponse.ChatId;
+                }
+
+                // Add the message to the current chat
+                if (currentChat == null)
+                {
+                    currentChat = new ChatModel
+                    {
+                        Id = apiResponse.ChatId,
+                        PatientId = patientId,
+                        Chats = new List<ChatMessage>()
+                    };
+                }
+
+                currentChat.Chats.Add(new ChatMessage
+                {
+                    Query = message,
+                    Response = apiResponse.AIResponse,
+                    Timestamp = apiResponse.Timestamp
+                });
+
+                // Refresh chat list to update message count
+                await LoadChatList();
+            }
+            else
+            {
+                ToastComponent?.ShowDangerToast("Error", apiResponse?.Message ?? "Failed to send message");
+                messageInput = message; // Restore the message
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", ex.Message);
+            messageInput = message; // Restore the message
+        }
+        finally
+        {
+            isSendingMessage = false;
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+@* ------------------------------------ *@
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                setTimeout(function() {
+                    var chatContainer = document.getElementById('chatMessages');
+                    if (chatContainer) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                }, 100);
+            ");
+        }
+        catch { }
+    }
+
+    // M-5 PRESCRIPTION METHODS  AND CALLIGN THE API
+
+    private async Task GeneratePrescription()
+    {
+        try
+        {
+            isGeneratingPrescription = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            
+            // Fetch doctor profile from API to get full info including clinic address
+            try
+            {
+                var doctorProfileResponse = await client.GetFromJsonAsync<DoctorProfileResponse>("api/Doctor/get/profile");
+                if (doctorProfileResponse?.IsSuccess == true && doctorProfileResponse.Doctor != null)
+                {
+                    doctorProfile = doctorProfileResponse.Doctor;
+                    doctorId = doctorProfile.Id;
+                    doctorSpecialty = doctorProfile.Speciality ?? doctorProfile.Specialization ?? "Specialist";
+                    doctorClinicAddress = doctorProfile.ClinicInfo?.Location ?? "N/A";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error fetching doctor profile: {ex.Message}");
+            }
+
+            // Get doctor name - prefer doctorProfile.Name, fallback to session user
+            if (!string.IsNullOrEmpty(doctorProfile?.Name))
+            {
+                doctorName = doctorProfile.Name;
+            }
+            else
+            {
+                var currentUserResult = await SessionStorage.GetAsync<LoginUser>("currentUser");
+                if (currentUserResult.Success && currentUserResult.Value != null)
+                {
+                    doctorName = $"{currentUserResult.Value.FirstName} {currentUserResult.Value.LastName}".Trim();
+                    if (string.IsNullOrEmpty(doctorId))
+                    {
+                        doctorId = currentUserResult.Value.Id;
+                    }
+                }
+                else
+                {
+                    var doctorResult = await SessionStorage.GetAsync<string>("userName");
+                    doctorName = doctorResult.Success ? doctorResult.Value : "Doctor";
+                }
+            }
+            
+            if (string.IsNullOrEmpty(doctorSpecialty))
+            {
+                doctorSpecialty = agentInfo?.Specialty ?? "Specialist";
+            }
+
+            // Build prescription request
+            var request = new PrescriptionRequest
+            {
+                DoctorName = doctorName,
+                DoctorSpecialty = doctorSpecialty,
+                PatientName = $"{patientDtoResponse?.Data?.FirstName} {patientDtoResponse?.Data?.LastName}".Trim(),
+                PatientGender = patientDtoResponse?.Data?.Gender,
+                PatientBloodGroup = patientDtoResponse?.Data?.BloodGroup,
+                PatientInitialConditions = patientDtoResponse?.Data?.InitialConditions,
+                PatientHistory = patientDtoResponse?.Data?.History,
+                DRResult = drResult,
+                ClassifierResult = classifierResult,
+                Conversation = currentChat?.Chats?.Select(c => new BlazorUI.Models.ConversationMessage
+                {
+                    Message = c.Query,
+                    Response = c.Response
+                }).ToList()
+            };
+
+            var response = await client.PostAsJsonAsync("api/Prescription/generate", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<PrescriptionResponse>();
+                if (result?.Success == true && result.Data != null)
+                {
+                    prescriptionData = result.Data;
+                    // Parse medicines text into individual entries for the UI
+                    ParseMedicinesToEntries(prescriptionData.Medicines);
+                    showPrescriptionPopup = true;
+                    ToastComponent?.ShowSuccessToast("Success", "Prescription generated! Please review and confirm.");
+                }
+                else
+                {
+                    ToastComponent?.ShowDangerToast("Error", result?.Message ?? "Failed to generate prescription");
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", "Failed to generate prescription");
+                Console.Error.WriteLine($"Prescription API Error: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Error generating prescription: {ex.Message}");
+            Console.Error.WriteLine($"Prescription Exception: {ex}");
+        }
+        finally
+        {
+            isGeneratingPrescription = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePrescriptionPopup()
+    {
+        showPrescriptionPopup = false;
+        StateHasChanged();
+    }
+
+    // Medicine Entry Helper Methods
+    private void AddMedicineEntry()
+    {
+        medicineEntries.Add(new MedicineEntry());
+        StateHasChanged();
+    }
+
+    private void RemoveMedicineEntry(int index)
+    {
+        if (index >= 0 && index < medicineEntries.Count)
+        {
+            medicineEntries.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private void IncreaseMedicineQty(int index)
+    {
+        if (index >= 0 && index < medicineEntries.Count)
+        {
+            medicineEntries[index].Quantity++;
+            StateHasChanged();
+        }
+    }
+
+    private void DecreaseMedicineQty(int index)
+    {
+        if (index >= 0 && index < medicineEntries.Count && medicineEntries[index].Quantity > 1)
+        {
+            medicineEntries[index].Quantity--;
+            StateHasChanged();
+        }
+    }
+
+    private void IncreaseMedicineDuration(int index)
+    {
+        if (index >= 0 && index < medicineEntries.Count)
+        {
+            medicineEntries[index].DurationDays++;
+            StateHasChanged();
+        }
+    }
+
+    private void DecreaseMedicineDuration(int index)
+    {
+        if (index >= 0 && index < medicineEntries.Count && medicineEntries[index].DurationDays > 1)
+        {
+            medicineEntries[index].DurationDays--;
+            StateHasChanged();
+        }
+    }
+
+    private string GetFormattedMedicinesFromEntries()
+    {
+        if (medicineEntries.Count == 0)
+            return prescriptionData.Medicines ?? "NIL";
+        
+        var formattedMedicines = medicineEntries
+            .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+            .Select(m => m.ToFormattedString());
+        
+        return string.Join("\n", formattedMedicines);
+    }
+
+    private void ParseMedicinesToEntries(string? medicinesText)
+    {
+        medicineEntries.Clear();
+        
+        if (string.IsNullOrWhiteSpace(medicinesText) || medicinesText == "NIL")
+            return;
+        
+        var lines = medicinesText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines)
+        {
+            var entry = new MedicineEntry();
+            
+            // Try to parse structured format: "Name - X tablet(s) - Timing | Instructions"
+            var parts = line.Split(new[] { " - " }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 1)
+            {
+                entry.Name = parts[0].Trim();
+                
+                if (parts.Length >= 2)
+                {
+                    // Try to extract quantity
+                    var qtyMatch = System.Text.RegularExpressions.Regex.Match(parts[1], @"(\d+)");
+                    if (qtyMatch.Success)
+                    {
+                        entry.Quantity = int.Parse(qtyMatch.Groups[1].Value);
+                    }
+                }
+                
+                if (parts.Length >= 3)
+                {
+                    var timingPart = parts[2].ToLower();
+                    entry.Morning = timingPart.Contains("morning");
+                    entry.Afternoon = timingPart.Contains("afternoon");
+                    entry.Evening = timingPart.Contains("evening");
+                    entry.Night = timingPart.Contains("night");
+                    
+                    // Extract instructions if present (after |)
+                    var instructionIndex = parts[2].IndexOf("|");
+                    if (instructionIndex >= 0 && instructionIndex < parts[2].Length - 1)
+                    {
+                        entry.Instructions = parts[2].Substring(instructionIndex + 1).Trim();
+                    }
+                }
+            }
+            
+            medicineEntries.Add(entry);
+        }
+    }
+
+@* M-7 CONFIRM AND GENERATE PRESCRIPTION *@
+    private async Task ConfirmAndGeneratePrescription()
+    {
+        try
+        {
+            isSavingPrescription = true;
+            StateHasChanged();
+
+            // Update medicines from entries before saving
+            if (medicineEntries.Count > 0)
+            {
+                prescriptionData.Medicines = GetFormattedMedicinesFromEntries();
+            }
+
+            // Step 1: Generate AI summary and save to history
+            var client = await ApiClient.SetAuthorizedHeader();
+            var patientSymptoms = patientDtoResponse?.Data?.InitialConditions ?? "";
+            
+            var summaryRequest = new SaveSummaryRequest
+            {
+                PatientId = patientId,
+                PatientSymptoms = patientSymptoms,
+                Diagnosis = prescriptionData.Diagnosis ?? "",
+                Medicines = prescriptionData.Medicines ?? "",
+                Tests = prescriptionData.Tests ?? "",
+                Advice = prescriptionData.Advice ?? "",
+                FollowUp = prescriptionData.FollowUp ?? ""
+            };
+
+            var summaryResponse = await client.PostAsJsonAsync("api/Prescription/save-summary", summaryRequest);
+            
+            if (summaryResponse.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var responseContent = await summaryResponse.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<SaveSummaryResponse>(responseContent, options);
+                
+                if (result?.Success == true && result.Data != null)
+                {
+                    // Add new history entry immediately
+                    var newHistoryEntry = new HistoryEntry
+                    {
+                        Date = result.Data.Date ?? DateTime.Now.ToString("dd-MM-yyyy"),
+                        Summary = result.Data.Summary ?? "Consultation completed"
+                    };
+                    patientHistoryEntries.Insert(0, newHistoryEntry);
+                    
+                    // Refresh patient data to update the history display
+                    await LoadPatientData();
+                }
+                
+                ToastComponent?.ShowSuccessToast("Summary Saved", "AI summary added to patient history!");
+            }
+            else
+            {
+                var error = await summaryResponse.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"Summary API Error: {error}");
+                ToastComponent?.ShowDangerToast("Warning", "Could not save summary, but you can still send the prescription.");
+            }
+
+            // Step 2: Generate prescription HTML for preview
+            GeneratePrescriptionHtml();
+
+            // Close edit popup and show preview
+            showPrescriptionPopup = false;
+            showPrescriptionPreview = true;
+            hasPrescriptionGenerated = true;
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Error: {ex.Message}");
+            Console.Error.WriteLine($"ConfirmAndGeneratePrescription Error: {ex.Message}");
+        }
+        finally
+        {
+            isSavingPrescription = false;
+            StateHasChanged();
+        }
+    }
+
+@* M-5 PRESCRIPTION GENERATION *@
+    private void GeneratePrescriptionHtml()
+    {
+        var patientName = $"{patientDtoResponse?.Data?.FirstName} {patientDtoResponse?.Data?.LastName}".Trim();
+        var patientGender = patientDtoResponse?.Data?.Gender ?? "NIL";
+        var currentDate = DateTime.Now.ToString("dd-MM-yyyy");
+        var clinicAddress = string.IsNullOrEmpty(doctorClinicAddress) ? "N/A" : doctorClinicAddress;
+
+        prescriptionHtml = $@"
+        <div style=""font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 30px; background: white;"">
+            <!-- Header with Logo -->
+            <div style=""text-align: center; border-bottom: 3px solid #2e7d32; padding-bottom: 20px; margin-bottom: 20px;"">
+                <div style=""display: flex; align-items: center; justify-content: center; gap: 15px;"">
+                    <img src=""/images/logo.png"" alt=""HealthVerse Logo"" style=""width: 70px; height: 70px; object-fit: contain;"" />
+                    <div>
+                        <h2 style=""margin: 0; color: #2e7d32; font-size: 28px; font-weight: bold;"">HEALTHVERSE</h2>
+                        <small style=""color: #666; font-size: 14px;"">Your Digital Health Companion</small>
+                    </div>
+                </div>
+                <h3 style=""margin: 15px 0 5px 0; color: #333;"">Dr. {doctorName}, ({doctorSpecialty})</h3>
+            </div>
+
+            <!-- Patient Info -->
+            <div style=""display: flex; justify-content: space-between; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;"">
+                <div>
+                    <p style=""margin: 5px 0;""><strong>Patient Name:</strong> {patientName}</p>
+                    <p style=""margin: 5px 0;""><strong>Gender:</strong> {patientGender}</p>
+                </div>
+                <div style=""text-align: right;"">
+                    <p style=""margin: 5px 0;""><strong>Date:</strong> {currentDate}</p>
+                </div>
+            </div>
+
+            <!-- Prescription Content -->
+            <div style=""line-height: 1.8;"">
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Diagnosis:</strong>
+                    <p style=""margin: 5px 0 0 15px; white-space: pre-wrap;"">{FormatPrescriptionField(prescriptionData.Diagnosis)}</p>
+                </div>
+
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Medicines:</strong>
+                    <p style=""margin: 5px 0 0 15px; white-space: pre-wrap;"">{FormatPrescriptionField(prescriptionData.Medicines)}</p>
+                </div>
+
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Usage:</strong>
+                    <p style=""margin: 5px 0 0 15px; white-space: pre-wrap;"">{FormatPrescriptionField(prescriptionData.Usage)}</p>
+                </div>
+
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Tests:</strong>
+                    <p style=""margin: 5px 0 0 15px; white-space: pre-wrap;"">{FormatPrescriptionField(prescriptionData.Tests)}</p>
+                </div>
+
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Advice:</strong>
+                    <p style=""margin: 5px 0 0 15px; white-space: pre-wrap;"">{FormatPrescriptionField(prescriptionData.Advice)}</p>
+                </div>
+
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Notes:</strong>
+                    <p style=""margin: 5px 0 0 15px; white-space: pre-wrap;"">{FormatPrescriptionField(prescriptionData.Notes)}</p>
+                </div>
+
+                <div style=""margin-bottom: 15px;"">
+                    <strong style=""color: #2e7d32;"">Follow Up:</strong>
+                    <p style=""margin: 5px 0 0 15px;"">{FormatPrescriptionField(prescriptionData.FollowUp)}</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style=""margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;"">
+                <p style=""margin: 5px 0;""><strong>Signed:</strong> Dr. {doctorName}</p>
+                <p style=""margin: 5px 0; color: #666;""><strong>Clinic Address:</strong> {clinicAddress}</p>
+            </div>
+        </div>
+        ";
+    }
+
+    private string FormatPrescriptionField(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Equals("NIL", StringComparison.OrdinalIgnoreCase))
+            return "- NIL";
+        
+        // Add dash before each line
+        var lines = value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join("\n", lines.Select(l => "- " + l.Trim()));
+    }
+
+    private void ClosePrescriptionPreview()
+    {
+        showPrescriptionPreview = false;
+        StateHasChanged();
+    }
+
+@* M-5 PRESCRIPTION PRINTING *@
+    private async Task PrintPrescription()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                var content = document.getElementById('prescriptionContent').innerHTML;
+                var printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Prescription</title>');
+                printWindow.document.write('<style>body { margin: 0; padding: 20px; } @media print { body { padding: 0; } }</style>');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(content);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(function() { printWindow.print(); }, 500);
+            ");
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "Failed to open print dialog");
+            Console.Error.WriteLine($"Print Error: {ex.Message}");
+        }
+    }
+
+    private async Task SendPrescription()
+    {
+        try
+        {
+            isSendingPrescription = true;
+            StateHasChanged();
+
+            string? base64Data = null;
+
+            // Try to capture as image first
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                base64Data = await JSRuntime.InvokeAsync<string>("captureElementAsBase64", cts.Token, "prescriptionContent");
+                if (!string.IsNullOrEmpty(base64Data))
+                {
+                    Console.WriteLine($"Image capture successful, length: {base64Data.Length}");
+                }
+            }
+            catch (Exception imgEx)
+            {
+                Console.Error.WriteLine($"Image capture failed: {imgEx.Message}");
+            }
+
+            // If image failed, try PDF
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                Console.WriteLine("Trying PDF generation...");
+                try
+                {
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                    base64Data = await JSRuntime.InvokeAsync<string>("generatePrescriptionPdf", cts.Token, "prescriptionContent");
+                    if (!string.IsNullOrEmpty(base64Data))
+                    {
+                        Console.WriteLine($"PDF generation successful, length: {base64Data.Length}");
+                    }
+                }
+                catch (Exception pdfEx)
+                {
+                    Console.Error.WriteLine($"PDF generation failed: {pdfEx.Message}");
+                }
+            }
+
+            // If both failed, show error
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                ToastComponent?.ShowDangerToast("Error", "Could not generate prescription file. Please try again.");
+                return;
+            }
+
+            // Send to save-prescription-image endpoint
+            var client = await ApiClient.SetAuthorizedHeader();
+            var patientFullName = ((patientDtoResponse?.Data?.FirstName ?? "") + " " + (patientDtoResponse?.Data?.LastName ?? "")).Trim();
+            
+            // Convert medicine entries to DTOs
+            var medicineItemDtos = medicineEntries
+                .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+                .Select(m => new MedicineItemDto
+                {
+                    Name = m.Name,
+                    Dosage = $"{m.Quantity} tablet(s)",
+                    DurationDays = m.DurationDays,
+                    Morning = m.Morning,
+                    Afternoon = m.Afternoon,
+                    Evening = m.Evening,
+                    Night = m.Night,
+                    Instructions = m.Instructions ?? ""
+                })
+                .ToList();
+
+            var request = new SavePrescriptionImageRequest
+            {
+                PatientId = patientId,
+                DoctorId = doctorId ?? "",
+                DoctorName = doctorName ?? "Doctor",
+                DoctorSpecialty = doctorSpecialty ?? "",
+                PatientName = patientFullName,
+                ImageBase64 = base64Data,
+                Diagnosis = prescriptionData.Diagnosis ?? "",
+                Medicines = prescriptionData.Medicines ?? "",
+                Advice = prescriptionData.Advice ?? "",
+                FollowUp = prescriptionData.FollowUp ?? "",
+                MedicineItems = medicineItemDtos.Count > 0 ? medicineItemDtos : null
+            };
+
+            var response = await client.PostAsJsonAsync("api/Prescription/save-prescription-image", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<SavePrescriptionImageResponse>(responseContent, options);
+                
+                if (result?.Success == true && result.Data != null)
+                {
+                    // Add the new prescription to the local list immediately
+                    var newPrescription = new SavedPrescription
+                    {
+                        Id = result.Data.PrescriptionId ?? "",
+                        PrescriptionUrl = result.Data.PrescriptionUrl ?? "",
+                        PrescriptionDate = result.Data.PrescriptionDate ?? DateTime.Now.ToString("dd-MM-yyyy"),
+                        DoctorName = doctorName ?? "Doctor",
+                        DoctorSpecialty = doctorSpecialty ?? "",
+                        Diagnosis = prescriptionData.Diagnosis ?? "",
+                        Medicines = prescriptionData.Medicines ?? "",
+                        Advice = prescriptionData.Advice ?? "",
+                        CreatedAt = DateTime.Now
+                    };
+                    patientReports.Insert(0, newPrescription);
+                    
+                    // Mark appointment as completed
+                    try
+                    {
+                        var completeResponse = await client.PostAsync($"api/Appointment/complete/{patientId}", null);
+                        if (completeResponse.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine("Appointment marked as completed");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Could not mark appointment as completed: {completeResponse.StatusCode}");
+                        }
+                    }
+                    catch (Exception completeEx)
+                    {
+                        Console.Error.WriteLine($"Error marking appointment complete: {completeEx.Message}");
+                    }
+                }
+                
+                ToastComponent?.ShowSuccessToast("Success", "Prescription saved successfully!");
+                ClosePrescriptionPreview();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Error", $"Failed: {response.StatusCode}");
+                Console.Error.WriteLine($"API Error: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", $"Error: {ex.Message}");
+            Console.Error.WriteLine($"Send Prescription Error: {ex.Message}");
+            Console.Error.WriteLine($"Stack Trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            isSendingPrescription = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSavedPrescriptions()
+    {
+        try
+        {
+            isLoadingSavedPrescriptions = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/Prescription/patient/{patientId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<SavedPrescriptionsResponse>(responseContent, options);
+                
+                if (result?.Success == true && result.Data != null)
+                {
+                    savedPrescriptions = result.Data;
+                    showSavedPrescriptionsModal = true;
+                }
+                else
+                {
+                    savedPrescriptions = new List<SavedPrescription>();
+                    showSavedPrescriptionsModal = true;
+                }
+            }
+            else
+            {
+                ToastComponent?.ShowDangerToast("Error", "Failed to load saved prescriptions");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "Failed to load saved prescriptions");
+            Console.Error.WriteLine($"Load Saved Prescriptions Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingSavedPrescriptions = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseSavedPrescriptionsModal()
+    {
+        showSavedPrescriptionsModal = false;
+        StateHasChanged();
+    }
+
+@* M-7 MEDICATION STICKING CALLING API *@
+    private async Task LoadMedicationAdherence()
+    {
+        try
+        {
+            isLoadingAdherence = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/MedicationTracking/adherence/{patientId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<MedicationAdherenceResponse>(responseContent, options);
+                
+                if (result?.Success == true && result.Data != null)
+                {
+                    medicationAdherenceData = result.Data;
+                }
+                else
+                {
+                    medicationAdherenceData = new List<MedicationAdherenceData>();
+                }
+            }
+            else
+            {
+                // No tracking data available - just set empty list, no toast needed
+                medicationAdherenceData = new List<MedicationAdherenceData>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "Failed to load medication adherence");
+            Console.Error.WriteLine($"Load Medication Adherence Error: {ex.Message}");
+            medicationAdherenceData = new List<MedicationAdherenceData>();
+        }
+        finally
+        {
+            isLoadingAdherence = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetAdherenceColor(double percentage)
+    {
+        if (percentage >= 80) return "#28a745"; // Green
+        if (percentage >= 50) return "#ffc107"; // Yellow/Warning
+        return "#dc3545"; // Red
+    }
+
+
+@* M-5 DAILY HISTORY LOADING *@
+    private async Task LoadDailyHistory()
+    {
+        try
+        {
+            isLoadingDailyHistory = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/MedicationTracking/daily-history/{patientId}?days=7");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<DailyHistoryResponse>(responseContent, options);
+                
+                if (result?.Success == true && result.Data != null)
+                {
+                    dailyHistoryData = result.Data;
+                }
+                else
+                {
+                    dailyHistoryData = new List<DailyHistoryStat>();
+                }
+            }
+            else
+            {
+                dailyHistoryData = new List<DailyHistoryStat>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Load Daily History Error: {ex.Message}");
+            dailyHistoryData = new List<DailyHistoryStat>();
+        }
+        finally
+        {
+            isLoadingDailyHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPatientData()
+    {
+        try
+        {
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/Doctor/get/patient/{patientId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var apiResponse = System.Text.Json.JsonSerializer.Deserialize<PatientDtoResponse>(responseContent, options);
+                if (apiResponse != null && apiResponse.IsSuccess)
+                {
+                    patientDtoResponse = apiResponse;
+                }
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading patient data: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshPatientHistory()
+    {
+        try
+        {
+            isRefreshingHistory = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            // Use the same endpoint that's used to load patient data initially
+            var response = await client.GetAsync($"api/Doctor/get/patient/{patientId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var apiResponse = System.Text.Json.JsonSerializer.Deserialize<PatientDtoResponse>(responseContent, options);
+                if (apiResponse != null && apiResponse.IsSuccess)
+                {
+                    patientDtoResponse = apiResponse;
+                    ToastComponent?.ShowSuccessToast("Refreshed", "Patient history updated");
+                }
+                else
+                {
+                    ToastComponent?.ShowDangerToast("Error", apiResponse?.Message ?? "Failed to refresh history");
+                }
+            }
+            else
+            {
+                ToastComponent?.ShowDangerToast("Error", "Failed to refresh history");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "Failed to refresh history");
+            Console.Error.WriteLine($"Error refreshing patient history: {ex.Message}");
+        }
+        finally
+        {
+            isRefreshingHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    private string FormatHistoryForDisplay(string history)
+    {
+        if (string.IsNullOrEmpty(history))
+            return "<p class='text-muted mb-0'>No history recorded</p>";
+
+        // Split by prescription entries and format nicely
+        var formatted = history
+            .Replace("--- Prescription", "<div class='border-top pt-2 mt-2'><strong class='text-success'>Prescription")
+            .Replace("---\n", "</strong></div>")
+            .Replace("Diagnosis:", "<br/><span class='text-primary'>Diagnosis:</span>")
+            .Replace("Medicines:", "<br/><span class='text-primary'>Medicines:</span>")
+            .Replace("Advice:", "<br/><span class='text-primary'>Advice:</span>")
+            .Replace("Follow-up:", "<br/><span class='text-primary'>Follow-up:</span>")
+            .Replace("Summary:", "<br/><span class='text-primary'>Summary:</span>")
+            .Replace("\n", "<br/>");
+
+        return $"<div>{formatted}</div>";
+    }
+
+    // Patient Reports Modal Methods
+    private async Task OpenPatientReportsModal()
+    {
+        try
+        {
+            isLoadingPatientReports = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var response = await client.GetAsync($"api/Prescription/patient/{patientId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<SavedPrescriptionsResponse>(responseContent, options);
+                
+                if (result?.Success == true && result.Data != null)
+                {
+                    patientReports = result.Data.OrderByDescending(p => p.CreatedAt).ToList();
+                }
+                else
+                {
+                    patientReports = new List<SavedPrescription>();
+                }
+                showPatientReportsModal = true;
+            }
+            else
+            {
+                ToastComponent?.ShowDangerToast("Error", "Failed to load patient reports");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "Failed to load patient reports");
+            Console.Error.WriteLine($"Load Patient Reports Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingPatientReports = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePatientReportsModal()
+    {
+        showPatientReportsModal = false;
+        StateHasChanged();
+    }
+
+    // Patient History Modal Methods
+    private async Task OpenPatientHistoryModal()
+    {
+        try
+        {
+            isLoadingPatientFullHistory = true;
+            StateHasChanged();
+
+            // Parse the patient's history into structured entries
+            patientHistoryEntries = ParseHistoryIntoEntries(patientDtoResponse?.Data?.History ?? "");
+            showPatientHistoryModal = true;
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "Failed to load patient history");
+            Console.Error.WriteLine($"Load Patient History Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingPatientFullHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePatientHistoryModal()
+    {
+        showPatientHistoryModal = false;
+        StateHasChanged();
+    }
+
+    private List<HistoryEntry> ParseHistoryIntoEntries(string history)
+    {
+        var entries = new List<HistoryEntry>();
+        
+        if (string.IsNullOrEmpty(history))
+            return entries;
+
+        // Split by prescription markers
+        var parts = history.Split(new[] { "--- Prescription" }, StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var part in parts)
+        {
+            if (string.IsNullOrWhiteSpace(part))
+                continue;
+
+            var entry = new HistoryEntry { Type = "Prescription" };
+            
+            // Extract date from the format "(dd-MM-yyyy) ---"
+            var dateMatch = System.Text.RegularExpressions.Regex.Match(part, @"\((\d{2}-\d{2}-\d{4})\)");
+            if (dateMatch.Success)
+            {
+                entry.Date = dateMatch.Groups[1].Value;
+            }
+            else
+            {
+                entry.Date = "Unknown Date";
+            }
+
+            // Parse individual fields
+            var lines = part.Split('\n');
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                
+                if (trimmedLine.StartsWith("Diagnosis:"))
+                    entry.Diagnosis = trimmedLine.Substring("Diagnosis:".Length).Trim();
+                else if (trimmedLine.StartsWith("Medicines:"))
+                    entry.Medicines = trimmedLine.Substring("Medicines:".Length).Trim();
+                else if (trimmedLine.StartsWith("Advice:"))
+                    entry.Advice = trimmedLine.Substring("Advice:".Length).Trim();
+                else if (trimmedLine.StartsWith("Follow-up:"))
+                    entry.FollowUp = trimmedLine.Substring("Follow-up:".Length).Trim();
+                else if (trimmedLine.StartsWith("Summary:"))
+                    entry.Summary = trimmedLine.Substring("Summary:".Length).Trim();
+            }
+
+            entries.Add(entry);
+        }
+
+        // Sort by date (most recent first)
+        return entries.OrderByDescending(e => {
+            if (DateTime.TryParseExact(e.Date, "dd-MM-yyyy", null, System.Globalization.DateTimeStyles.None, out var date))
+                return date;
+            return DateTime.MinValue;
+        }).ToList();
+    }
+
+    // History Entry class
+    public class HistoryEntry
+    {
+        public string Date { get; set; } = "";
+        public string Type { get; set; } = "Prescription";
+        public string Diagnosis { get; set; } = "";
+        public string Medicines { get; set; } = "";
+        public string Advice { get; set; } = "";
+        public string FollowUp { get; set; } = "";
+        public string Summary { get; set; } = "";
+    }
+
+    // Medicine Entry class for individual medicine items
+    public class MedicineEntry
+    {
+        public string Name { get; set; } = "";
+        public int Quantity { get; set; } = 1;
+        public int DurationDays { get; set; } = 7; // Duration in days for medication
+        public bool Morning { get; set; } = false;
+        public bool Afternoon { get; set; } = false;
+        public bool Evening { get; set; } = false;
+        public bool Night { get; set; } = false;
+        public string Instructions { get; set; } = "";
+
+        public string GetTimingDisplay()
+        {
+            var timings = new List<string>();
+            if (Morning) timings.Add("Morning");
+            if (Afternoon) timings.Add("Afternoon");
+            if (Evening) timings.Add("Evening");
+            if (Night) timings.Add("Night");
+            return timings.Count > 0 ? string.Join(", ", timings) : "As needed";
+        }
+
+        public string ToFormattedString()
+        {
+            var timing = GetTimingDisplay();
+            return $"{Name} - {Quantity} tablet(s) - {timing} for {DurationDays} days" + 
+                   (string.IsNullOrEmpty(Instructions) ? "" : $" | {Instructions}");
+        }
+    }
+
+    private async Task ReferPatient()
+    {
+        if (string.IsNullOrEmpty(selectedReferralSpecialty)) return;
+
+        try
+        {
+            isReferring = true;
+            StateHasChanged();
+
+            var client = await ApiClient.SetAuthorizedHeader();
+            var payload = new
+            {
+                PatientId = patientId,
+                TargetSpecialty = selectedReferralSpecialty,
+                Notes = $"Referred by Dr. {doctorName} after consultation."
+            };
+
+            var response = await client.PostAsJsonAsync("api/Referral/create", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ToastComponent?.ShowSuccessToast("Referred", $"Patient successfully referred to {selectedReferralSpecialty}.");
+                selectedReferralSpecialty = ""; // reset
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastComponent?.ShowDangerToast("Referral Failed", "Could not refer patient.");
+                Console.Error.WriteLine($"Referral Error: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastComponent?.ShowDangerToast("Error", "An error occurred during referral.");
+            Console.Error.WriteLine($"ReferPatient Error: {ex.Message}");
+        }
+        finally
+        {
+            isReferring = false;
+            StateHasChanged();
+        }
+    }
+}

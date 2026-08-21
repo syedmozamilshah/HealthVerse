@@ -1,0 +1,26 @@
+# .NET Core
+bin/
+obj/
+appsettings.json
+appsettings.*.json
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Specific Sensitive Files
+migrate_mongodb.py
+test.py
+test_groq_only.py
+test_triage_conversational.py
+triage_output.txt
+triage_output_120b.txt

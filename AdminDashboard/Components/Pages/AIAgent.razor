@@ -1,0 +1,660 @@
+@rendermode InteractiveServer
+@page "/ai-agent"
+@using AdminDashboard.Services
+@inject ApiService ApiService
+
+<PageTitle>AI Agent Control - HealthVerse Admin</PageTitle>
+
+<div class="ai-agent-page">
+    <h1 class="h3 fw-bold text-dark mb-4">Eye Care Agent Management</h1>
+    
+    <!-- Global Mode Toggle + Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Global Assignment Mode</h5>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="modeToggle" id="modeAuto" autocomplete="off"
+                               checked="@(globalMode == "Auto")" @onchange="@(() => ToggleMode("Auto"))">
+                        <label class="btn" for="modeAuto">
+                            Auto
+                        </label>
+                        <input type="radio" class="btn-check" name="modeToggle" id="modeManual" autocomplete="off"
+                               checked="@(globalMode == "Manual")" @onchange="@(() => ToggleMode("Manual"))">
+                        <label class="btn" for="modeManual">
+                            Manual
+                        </label>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">
+                        @if (globalMode == "Auto")
+                        {
+                            <span><i class="bi bi-info-circle me-1"></i>Agents assigned automatically upon verification approval.</span>
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-info-circle me-1"></i>Agents require manual admin approval after verification.</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-start border-warning border-3">
+                        <div class="card-body text-center">
+                            <h3 class="fw-bold text-warning mb-0">@pendingCount</h3>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-start border-success border-3">
+                        <div class="card-body text-center">
+                            <h3 class="fw-bold text-success mb-0">@activeCount</h3>
+                            <small class="text-muted">Active</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-start border-info border-3">
+                        <div class="card-body text-center">
+                            <h3 class="fw-bold text-info mb-0">@pausedCount</h3>
+                            <small class="text-muted">Paused</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm h-100 border-start border-secondary border-3">
+                        <div class="card-body text-center">
+                            <h3 class="fw-bold text-secondary mb-0">@archivedCount</h3>
+                            <small class="text-muted">Archived</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "pending" ? "active" : "")" @onclick="@(() => SwitchTab("pending"))">
+                <i class="bi bi-hourglass-split me-1"></i>Pending Queue
+                @if (pendingCount > 0)
+                {
+                    <span class="badge bg-warning text-dark ms-1">@pendingCount</span>
+                }
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "active" ? "active" : "")" @onclick="@(() => SwitchTab("active"))">
+                <i class="bi bi-check-circle me-1"></i>Active
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "paused" ? "active" : "")" @onclick="@(() => SwitchTab("paused"))">
+                <i class="bi bi-pause-circle me-1"></i>Paused
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "archived" ? "active" : "")" @onclick="@(() => SwitchTab("archived"))">
+                <i class="bi bi-archive me-1"></i>Archived
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (isLoading)
+            {
+                <div class="text-center py-4">
+                    <div class="spinner-border" style="color: #198754;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading assignments...</p>
+                </div>
+            }
+            else if (filteredAssignments.Count == 0)
+            {
+                <div class="text-center py-4">
+                    <i class="bi bi-robot text-muted" style="font-size: 3rem;"></i>
+                    <p class="mt-2 text-muted">No @activeTab assignments found.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Primary Agent</th>
+                                <th>Sub-Agent</th>
+                                <th>Mode</th>
+                                <th>Status</th>
+                                <th>Subscription</th>
+                                <th>Assigned</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assignment in filteredAssignments)
+                            {
+                                <tr>
+                                    <td class="fw-medium">@assignment.DoctorNameSnapshot</td>
+                                    <td>@assignment.PrimaryAgent</td>
+                                    <td>@(string.IsNullOrEmpty(assignment.SubAgent) ? "-" : assignment.SubAgent)</td>
+                                    <td><span class="badge @(assignment.Mode == "Auto" ? "bg-info" : "bg-secondary")">@assignment.Mode</span></td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(assignment.Status)">@assignment.Status</span>
+                                    </td>
+                                    <td>
+                                        @if (assignment.IsSubscriptionEligible)
+                                        {
+                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>@(string.IsNullOrEmpty(assignment.SubscriptionStatus) ? "None" : assignment.SubscriptionStatus)</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">@assignment.AssignedAt.ToDisplayString("MMM dd, yyyy")</td>
+                                    <td>
+                                        @if (assignment.Status == "Pending")
+                                        {
+                                            <button class="btn btn-sm btn-success me-1" 
+                                                    @onclick="() => ApproveAssignment(assignment.DoctorId)"
+                                                    disabled="@isProcessing"
+                                                    title="Approve">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => ArchiveAssignment(assignment.DoctorId)"
+                                                    disabled="@isProcessing"
+                                                    title="Archive">
+                                                <i class="bi bi-archive"></i>
+                                            </button>
+                                        }
+                                        else if (assignment.Status == "Active")
+                                        {
+                                            <button class="btn btn-sm btn-outline-warning me-1" 
+                                                    @onclick="() => PauseAssignment(assignment.DoctorId)"
+                                                    disabled="@isProcessing"
+                                                    title="Pause">
+                                                <i class="bi bi-pause-fill"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => ArchiveAssignment(assignment.DoctorId)"
+                                                    disabled="@isProcessing"
+                                                    title="Archive">
+                                                <i class="bi bi-archive"></i>
+                                            </button>
+                                        }
+                                        else if (assignment.Status == "Paused")
+                                        {
+                                            <button class="btn btn-sm btn-outline-success me-1" 
+                                                    @onclick="() => ResumeAssignment(assignment.DoctorId)"
+                                                    disabled="@isProcessing"
+                                                    title="Resume">
+                                                <i class="bi bi-play-fill"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => ArchiveAssignment(assignment.DoctorId)"
+                                                    disabled="@isProcessing"
+                                                    title="Archive">
+                                                <i class="bi bi-archive"></i>
+                                            </button>
+                                        }
+                                        
+                                        <button class="btn btn-sm btn-outline-primary ms-1" 
+                                                @onclick="() => ViewHistory(assignment.DoctorId, assignment.DoctorNameSnapshot)"
+                                                title="View History">
+                                            <i class="bi bi-clock-history"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-@messageType alert-dismissible fade show mt-3" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+        </div>
+    }
+
+    <!-- History Modal -->
+    @if (showHistoryModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Assignment History — @historyDoctorName</h5>
+                        <button type="button" class="btn-close" @onclick="CloseHistory"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (historyEvents.Count == 0)
+                        {
+                            <p class="text-muted text-center">No history events found.</p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Event</th>
+                                            <th>From</th>
+                                            <th>To</th>
+                                            <th>By</th>
+                                            <th>Source</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var evt in historyEvents)
+                                        {
+                                            <tr>
+                                                <td><span class="badge bg-primary">@evt.EventType</span></td>
+                                                <td>@(string.IsNullOrEmpty(evt.OldStatus) ? "-" : evt.OldStatus)</td>
+                                                <td>@evt.NewStatus</td>
+                                                <td class="small">@evt.TriggeredBy</td>
+                                                <td class="small">@evt.TriggerSource</td>
+                                                <td class="small text-muted">@evt.CreatedAt.ToDisplayString("MMM dd, yyyy HH:mm")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseHistory">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .btn-group label.btn {
+        border: 1px solid #198754 !important;
+        color: #198754 !important;
+        background-color: white;
+    }
+
+    .btn-group .btn-check:checked + label.btn {
+        background-color: #198754 !important;
+        color: white !important;
+        border-color: #198754 !important;
+    }
+
+    .btn-group label.btn:hover {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+
+    .nav-tabs .nav-link.active {
+        border-color: #198754 #198754 #fff;
+        color: #198754;
+        font-weight: 600;
+    }
+
+    .nav-tabs .nav-link {
+        color: #6c757d;
+    }
+</style>
+
+@code {
+    private string globalMode = "Auto";
+    private string activeTab = "pending";
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private string message = string.Empty;
+    private string messageType = "success";
+
+    private List<AssignmentItem> allAssignments = new();
+    private List<AssignmentItem> filteredAssignments = new();
+
+    private int pendingCount => allAssignments.Count(a => a.Status == "Pending");
+    private int activeCount => allAssignments.Count(a => a.Status == "Active");
+    private int pausedCount => allAssignments.Count(a => a.Status == "Paused");
+    private int archivedCount => allAssignments.Count(a => a.Status == "Archived");
+
+    // History modal
+    private bool showHistoryModal = false;
+    private string historyDoctorName = "";
+    private List<HistoryEvent> historyEvents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+        await LoadAssignments();
+    }
+
+    private async Task LoadSettings()
+    {
+        try
+        {
+            var response = await ApiService.GetAsync<SettingsResponse>("/api/admin/agent-assignment/settings");
+            if (response?.IsSuccess == true)
+            {
+                globalMode = response.GlobalMode;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading settings: {ex.Message}");
+        }
+    }
+
+    private async Task LoadAssignments()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.GetAsync<AssignmentListResponse>("/api/admin/agent-assignment/list");
+            if (response?.IsSuccess == true)
+            {
+                allAssignments = response.Data ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error loading assignments: {ex.Message}";
+            messageType = "danger";
+        }
+
+        FilterByTab();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        FilterByTab();
+    }
+
+    private void FilterByTab()
+    {
+        filteredAssignments = activeTab switch
+        {
+            "pending" => allAssignments.Where(a => a.Status == "Pending").ToList(),
+            "active" => allAssignments.Where(a => a.Status == "Active").ToList(),
+            "paused" => allAssignments.Where(a => a.Status == "Paused").ToList(),
+            "archived" => allAssignments.Where(a => a.Status == "Archived").ToList(),
+            _ => allAssignments
+        };
+    }
+
+    private async Task ToggleMode(string mode)
+    {
+        try
+        {
+            var response = await ApiService.PutAsync<SettingsResponse>(
+                "/api/admin/agent-assignment/settings",
+                new { globalMode = mode });
+
+            if (response?.IsSuccess == true)
+            {
+                globalMode = response.GlobalMode;
+                message = $"Global mode changed to {mode}";
+                messageType = "success";
+            }
+            else
+            {
+                message = $"Failed to update mode: {response?.Message}";
+                messageType = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error updating mode: {ex.Message}";
+            messageType = "danger";
+        }
+        StateHasChanged();
+    }
+
+    private async Task ApproveAssignment(string doctorId)
+    {
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.PostAsync<ActionResponse>(
+                $"/api/admin/agent-assignment/approve/{doctorId}", null);
+
+            if (response?.IsSuccess == true)
+            {
+                message = response.Message;
+                messageType = "success";
+                await LoadAssignments();
+            }
+            else
+            {
+                message = response?.Message ?? "Failed to approve";
+                messageType = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            messageType = "danger";
+        }
+
+        isProcessing = false;
+        StateHasChanged();
+    }
+
+    private async Task PauseAssignment(string doctorId)
+    {
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.PostAsync<ActionResponse>(
+                $"/api/admin/agent-assignment/pause/{doctorId}", new { reason = "" });
+
+            if (response?.IsSuccess == true)
+            {
+                message = response.Message;
+                messageType = "warning";
+                await LoadAssignments();
+            }
+            else
+            {
+                message = response?.Message ?? "Failed to pause";
+                messageType = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            messageType = "danger";
+        }
+
+        isProcessing = false;
+        StateHasChanged();
+    }
+
+    private async Task ResumeAssignment(string doctorId)
+    {
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.PostAsync<ActionResponse>(
+                $"/api/admin/agent-assignment/resume/{doctorId}", null);
+
+            if (response?.IsSuccess == true)
+            {
+                message = response.Message;
+                messageType = "success";
+                await LoadAssignments();
+            }
+            else
+            {
+                message = response?.Message ?? "Failed to resume";
+                messageType = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            messageType = "danger";
+        }
+
+        isProcessing = false;
+        StateHasChanged();
+    }
+
+    private async Task ArchiveAssignment(string doctorId)
+    {
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.PostAsync<ActionResponse>(
+                $"/api/admin/agent-assignment/archive/{doctorId}", new { reason = "" });
+
+            if (response?.IsSuccess == true)
+            {
+                message = response.Message;
+                messageType = "warning";
+                await LoadAssignments();
+            }
+            else
+            {
+                message = response?.Message ?? "Failed to archive";
+                messageType = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            messageType = "danger";
+        }
+
+        isProcessing = false;
+        StateHasChanged();
+    }
+
+    private async Task ViewHistory(string doctorId, string doctorName)
+    {
+        historyDoctorName = doctorName;
+        historyEvents = new();
+        showHistoryModal = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.GetAsync<HistoryResponse>($"/api/admin/agent-assignment/history/{doctorId}");
+            if (response?.IsSuccess == true)
+            {
+                historyEvents = response.Data ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading history: {ex.Message}");
+        }
+        StateHasChanged();
+    }
+
+    private void CloseHistory()
+    {
+        showHistoryModal = false;
+        historyDoctorName = "";
+        historyEvents = new();
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Pending" => "bg-warning text-dark",
+        "Active" => "bg-success",
+        "Paused" => "bg-info",
+        "Archived" => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+
+    // ---- Local Models ----
+
+    public class SettingsResponse
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; } = "";
+        public string GlobalMode { get; set; } = "Auto";
+        public bool EnforceSubscriptionGate { get; set; }
+        public bool BlockAutoOnArchived { get; set; }
+    }
+
+    public class AssignmentItem
+    {
+        public string Id { get; set; } = "";
+        public string DoctorId { get; set; } = "";
+        public string DoctorNameSnapshot { get; set; } = "";
+        public string PrimaryAgent { get; set; } = "";
+        public string SubAgent { get; set; } = "";
+        public string Mode { get; set; } = "";
+        public string Status { get; set; } = "";
+        public bool IsArchived { get; set; }
+        public string Source { get; set; } = "";
+        public DateTime AssignedAt { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public DateTime LastStatusChangedAt { get; set; }
+        public string PauseReason { get; set; } = "";
+        public string ArchiveReason { get; set; } = "";
+        public string Notes { get; set; } = "";
+        public bool IsSubscriptionEligible { get; set; }
+        public string SubscriptionStatus { get; set; } = "";
+    }
+
+    public class AssignmentListResponse
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; } = "";
+        public List<AssignmentItem>? Data { get; set; }
+        public int TotalCount { get; set; }
+    }
+
+    public class ActionResponse
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; } = "";
+    }
+
+    public class HistoryEvent
+    {
+        public string Id { get; set; } = "";
+        public string EventType { get; set; } = "";
+        public string OldStatus { get; set; } = "";
+        public string NewStatus { get; set; } = "";
+        public string TriggeredBy { get; set; } = "";
+        public string TriggerSource { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class HistoryResponse
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; } = "";
+        public List<HistoryEvent>? Data { get; set; }
+    }
+}

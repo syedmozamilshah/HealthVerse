@@ -1,0 +1,96 @@
+<div class="card shadow-sm h-100 border-0">
+    <div class="card-body">
+        @if (IsLoading)
+        {
+             <div class="d-flex align-items-center justify-content-between">
+                <div class="w-100 me-3">
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                    <div class="skeleton skeleton-text" style="width: 40%; height: 2rem; margin-bottom: 0;"></div>
+                </div>
+                <div class="skeleton skeleton-circle" style="width: 56px; height: 56px;"></div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center justify-content-between animate-fade-in">
+                <div class="flex-grow-1">
+                    <p class="text-muted small mb-1 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">@Label</p>
+                    <h3 class="fw-bold mb-0 text-dark">@Value</h3>
+                    @if (SparklineData != null && SparklineData.Any())
+                    {
+                        <div class="sparkline-container mt-2">
+                            <svg width="120" height="30" class="sparkline">
+                                <polyline points="@GetSparklinePoints()" 
+                                          fill="none" 
+                                          stroke="@SparklineColor" 
+                                          stroke-width="2"
+                                          stroke-linecap="round"
+                                          stroke-linejoin="round"/>
+                            </svg>
+                            @if (!string.IsNullOrEmpty(TrendText))
+                            {
+                                <small class="text-muted ms-2">@TrendText</small>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="@BackgroundColorClass rounded-circle p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px;">
+                    <i class="bi @Icon text-white fs-4"></i>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Icon { get; set; } = "bi-info-circle";
+
+    [Parameter]
+    public string BackgroundColorClass { get; set; } = "bg-primary";
+
+    [Parameter]
+    public bool IsLoading { get; set; } = false;
+
+    [Parameter]
+    public List<double>? SparklineData { get; set; }
+
+    [Parameter]
+    public string SparklineColor { get; set; } = "#2a9d8f";
+
+    [Parameter]
+    public string TrendText { get; set; } = string.Empty;
+
+@* M-9 USED FOR GENERATING SPARKLINE POINTS *@
+    private string GetSparklinePoints()
+    {
+        if (SparklineData == null || !SparklineData.Any())
+            return string.Empty;
+
+        var width = 120.0;
+        var height = 30.0;
+        var max = SparklineData.Max();
+        var min = SparklineData.Min();
+        var range = max - min;
+        
+        if (range == 0) range = 1;
+
+        var points = new List<string>();
+        var step = width / (SparklineData.Count - 1);
+
+        for (int i = 0; i < SparklineData.Count; i++)
+        {
+            var x = i * step;
+            var y = height - ((SparklineData[i] - min) / range * height);
+            points.Add($"{x:F1},{y:F1}");
+        }
+
+        return string.Join(" ", points);
+    }
+}

@@ -1,0 +1,139 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using NetcodeHub.Packages.Components.Toast
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AppointmentHubClient HubClient
+
+
+
+<NetcodeHubToast @ref="ToastComponent" 
+                 Position="bottom-right" 
+                 Duration="10000" 
+                 Persist="false" />
+
+<div class="page">
+
+    <div class="top-row px-4">
+        <AuthorizeView>
+            <Authorized>
+                @* <div>Hello, @context.User.Identity?.Name!</div> *@
+                @{ToastComponent!.ShowSuccessToast("Authorized", context.User.Identity?.Name!);}
+            </Authorized>
+            <NotAuthorized>
+                @* <div>Hello, @context.User.Identity?.Name!</div> *@
+                @{ToastComponent!.ShowDangerToast("Not authorized", "");}
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+    @if (false)
+    {
+        <!-- Navbar (hidden on /dashboard) -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container">
+                <!-- Logo -->
+                <a class="navbar-brand d-flex align-items-center" href="/">
+                    <img src="images/logo.ico" alt="Healthverse Logo" width="100" height="100" />
+                    <div>
+                        <strong class="text-success">HEALTHVERSE</strong><br />
+                        <small class="text-muted">Your Digital Health Companion</small>
+                    </div>
+                </a>
+
+                @* <!-- Nav Links -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto fw-semibold">
+                            <li class="nav-item item">
+                            <NavLink href="/" Match="NavLinkMatch.All" class="nav-link"style="color: #FFFFFF;" replace="true">Home</NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink href="/about" class="nav-link">About Us</NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink href="/contact" class="nav-link">Contact Us</NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink href="/appointments" class="nav-link">Appointments</NavLink>
+                        </li>
+                    </ul>
+                </div> *@
+            </div>
+        </nav>
+    }
+
+    <!-- Page body -->
+    <main class="flex-grow-1">
+        @Body
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+
+    private NetcodeHubToast? ToastComponent;
+    private bool _hubInitialized;
+
+    private bool IsHomePage =>
+        Navigation.Uri.TrimEnd('/') == Navigation.BaseUri.TrimEnd('/');
+
+     private bool IsSignIn => 
+        Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsSignUp => 
+        Navigation.Uri.Contains("/Register", StringComparison.OrdinalIgnoreCase);
+
+    private bool ForgetPassword => 
+        Navigation.Uri.Contains("/forget-password", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hubInitialized)
+        {
+            _hubInitialized = true;
+            HubClient.NewAppointment += HandleNewAppointment;
+            HubClient.VerificationStatusChanged += HandleVerificationStatusChanged;
+            await HubClient.StartAsync();
+        }
+    }
+
+    private Task HandleNewAppointment(AppointmentNotification notice)
+    {
+        var title = "New Appointment";
+        var body = string.IsNullOrWhiteSpace(notice.PatientName)
+            ? "A new appointment has been booked."
+            : $"{notice.PatientName} booked an appointment.";
+
+        ToastComponent?.ShowSuccessToast(title, body);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleVerificationStatusChanged(VerificationStatusNotification notice)
+    {
+        var status = (notice.Status ?? string.Empty).ToLowerInvariant();
+        if (status == "approved")
+        {
+            ToastComponent?.ShowSuccessToast("Verification Approved!", notice.Message ?? "Your verification has been approved.");
+        }
+        else if (status == "rejected")
+        {
+            ToastComponent?.ShowDangerToast("Verification Rejected", notice.Message ?? "Your verification was rejected.");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        HubClient.NewAppointment -= HandleNewAppointment;
+        HubClient.VerificationStatusChanged -= HandleVerificationStatusChanged;
+    }
+}

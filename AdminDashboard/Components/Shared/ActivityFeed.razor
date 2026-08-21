@@ -1,0 +1,32 @@
+@* M-9 USED FOR DISPLAYING ACTIVITY FEED *@
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title fw-bold mb-4">Recent Activity Feed</h5>
+        <div class="activity-list">
+            @foreach (var activity in Activities)
+            {
+                <div class="activity-item p-3 rounded mb-2">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-activity text-primary me-3 mt-1"></i>
+                        <div class="flex-grow-1">
+                            <p class="mb-1">@activity.Text</p>
+                            <small class="text-muted">@activity.Time</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<ActivityItem> Activities { get; set; } = new();
+
+    public class ActivityItem
+    {
+        public int Id { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string Time { get; set; } = string.Empty;
+    }
+}

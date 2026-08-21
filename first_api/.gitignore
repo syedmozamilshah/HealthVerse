@@ -1,0 +1,35 @@
+# Configuration files
+appsettings.json
+appsettings.*.json
+appsettings.Development.json
+appsettings.Production.json
+
+# Build results
+bin/
+obj/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Dependencies
+node_modules/
+packages/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+secrets.json
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

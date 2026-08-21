@@ -1,0 +1,398 @@
+@rendermode InteractiveServer
+@page "/users"
+@using AdminDashboard.Components.Shared
+@using AdminDashboard.Services
+@inject ApiService ApiService
+
+<PageTitle>User Management - HealthVerse Admin</PageTitle>
+
+<div class="user-management-page">
+    <h1 class="h3 fw-bold text-dark mb-4">User Management & Moderation</h1>
+    
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert alert-@alertType alert-dismissible fade show" role="alert">
+            @alertMessage
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+    
+    @if (isLoading)
+    {
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white border-bottom-0 pt-3 px-3">
+                <div class="d-flex gap-3">
+                    <div class="skeleton skeleton-text" style="width: 100px; height: 40px; border-radius: 20px;"></div>
+                    <div class="skeleton skeleton-text" style="width: 100px; height: 40px; border-radius: 20px;"></div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="skeleton skeleton-text" style="height: 38px; border-radius: 6px;"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="skeleton skeleton-text" style="height: 38px; border-radius: 6px;"></div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th><div class="skeleton skeleton-text" style="width: 100px;"></div></th>
+                                <th><div class="skeleton skeleton-text" style="width: 150px;"></div></th>
+                                <th><div class="skeleton skeleton-text" style="width: 80px;"></div></th>
+                                <th><div class="skeleton skeleton-text" style="width: 100px;"></div></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for(int i=0; i<5; i++)
+                            {
+                                <tr>
+                                    <td><div class="skeleton skeleton-text" style="width: 120px;"></div></td>
+                                    <td><div class="skeleton skeleton-text" style="width: 180px;"></div></td>
+                                    <td><div class="skeleton skeleton-text" style="width: 60px; border-radius: 12px;"></div></td>
+                                    <td><div class="skeleton skeleton-text" style="width: 100px; height: 30px; border-radius: 4px;"></div></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="animate-fade-in">
+            <TabControl Tabs="@tabs" 
+                        ActiveTab="@activeTab" 
+                        ActiveTabChanged="@OnTabChanged">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Search by name, email..."
+                                   @bind="searchQuery"
+                                   @bind:event="oninput">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" @bind="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="suspended">Suspended</option>
+                            <option value="banned">Banned</option>
+                            <option value="verified">Verified</option>
+                            <option value="not verified">Not Verified</option>
+                        </select>
+                    </div>
+                </div>
+
+                <DataTable TItem="UserInfo" Items="@GetFilteredUsers()" EnableActions="false">
+                    <HeaderTemplate>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </HeaderTemplate>
+                    <RowTemplate Context="user">
+                        <td class="fw-medium">@user.Name</td>
+                        <td class="text-muted">@user.Email</td>
+                        <td>
+                            <span class="badge @GetStatusBadgeClass(user.AccountStatus)">
+                                @user.AccountStatus
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => ViewUserDetails(user)" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                @if (user.AccountStatus?.ToLower() == "active" || user.AccountStatus?.ToLower() == "verified")
+                                {
+                                    <button class="btn btn-outline-warning btn-sm" @onclick="() => SuspendUser(user)" title="Suspend">
+                                        <i class="bi bi-pause-circle"></i>
+                                    </button>
+                                }
+                                @if (user.AccountStatus?.ToLower() == "suspended")
+                                {
+                                    <button class="btn btn-outline-success btn-sm" @onclick="() => ActivateUser(user)" title="Activate">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                }
+                                @if (user.AccountStatus?.ToLower() != "banned")
+                                {
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => BanUser(user)" title="Ban">
+                                        <i class="bi bi-slash-circle"></i>
+                                    </button>
+                                }
+                                @if (user.AccountStatus?.ToLower() == "banned")
+                                {
+                                    <button class="btn btn-outline-success btn-sm" @onclick="() => UnbanUser(user)" title="Unban">
+                                        <i class="bi bi-unlock"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </RowTemplate>
+                </DataTable>
+            </TabControl>
+        </div>
+    }
+</div>
+
+@* User Details Modal *@
+@if (showUserModal && selectedUser != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">User Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseUserModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-lg bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
+                            @selectedUser.Name?.FirstOrDefault()
+                        </div>
+                        <h4 class="mt-3 mb-1">@selectedUser.Name</h4>
+                        <span class="badge @GetStatusBadgeClass(selectedUser.AccountStatus)">@selectedUser.AccountStatus</span>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-muted small">Email</label>
+                            <p class="mb-0 fw-medium">@selectedUser.Email</p>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">User ID</label>
+                            <p class="mb-0 fw-medium text-truncate" title="@selectedUser.Id">@selectedUser.Id</p>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">Role</label>
+                            <p class="mb-0 fw-medium">@(activeTab == "doctors" ? "Doctor" : "Patient")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    @if (selectedUser.AccountStatus?.ToLower() == "active" || selectedUser.AccountStatus?.ToLower() == "verified")
+                    {
+                        <button class="btn btn-warning" @onclick="async () => { await SuspendUser(selectedUser); CloseUserModal(); }">
+                            <i class="bi bi-pause-circle me-1"></i> Suspend
+                        </button>
+                    }
+                    @if (selectedUser.AccountStatus?.ToLower() == "suspended")
+                    {
+                        <button class="btn btn-success" @onclick="async () => { await ActivateUser(selectedUser); CloseUserModal(); }">
+                            <i class="bi bi-check-circle me-1"></i> Activate
+                        </button>
+                    }
+                    @if (selectedUser.AccountStatus?.ToLower() != "banned")
+                    {
+                        <button class="btn btn-danger" @onclick="async () => { await BanUser(selectedUser); CloseUserModal(); }">
+                            <i class="bi bi-slash-circle me-1"></i> Ban
+                        </button>
+                    }
+                    @if (selectedUser.AccountStatus?.ToLower() == "banned")
+                    {
+                        <button class="btn btn-success" @onclick="async () => { await UnbanUser(selectedUser); CloseUserModal(); }">
+                            <i class="bi bi-unlock me-1"></i> Unban
+                        </button>
+                    }
+                    <button type="button" class="btn btn-secondary" @onclick="CloseUserModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string activeTab = "patients";
+    private string searchQuery = string.Empty;
+    private string statusFilter = string.Empty;
+    private string? alertMessage;
+    private string alertType = "info";
+    private UserInfo? selectedUser;
+    private bool showUserModal = false;
+
+    private Dictionary<string, string> tabs = new()
+    {
+        { "patients", "Patients" },
+        { "doctors", "Doctors" }
+    };
+
+    private List<UserInfo> patients = new();
+    private List<UserInfo> doctors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    // USER ACTIVITY TRACKING AND ALL THE RELATED FUNCTIONALITY
+    private async Task LoadData()
+    {
+        isLoading = true;
+
+        // Load patients from UserData API
+        var userResponse = await ApiService.GetAsync<ApiResponse<List<UserInfo>>>("/api/admin/UserData/info");
+        if (userResponse?.IsSuccess == true && userResponse.Data != null)
+        {
+            patients = userResponse.Data;
+        }
+
+        // Load doctors from DoctorData API
+        var doctorResponse = await ApiService.GetAsync<ApiResponse<List<UserInfo>>>("/api/admin/DoctorData/info");
+        if (doctorResponse?.IsSuccess == true && doctorResponse.Data != null)
+        {
+            doctors = doctorResponse.Data;
+        }
+
+        isLoading = false;
+    }
+
+    private void OnTabChanged(string tabKey)
+    {
+        activeTab = tabKey;
+        searchQuery = string.Empty;
+        statusFilter = string.Empty;
+        StateHasChanged();
+    }
+
+    private IEnumerable<UserInfo> GetFilteredUsers()
+    {
+        var users = activeTab == "doctors" ? doctors : patients;
+        
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            users = users.Where(u => 
+                u.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                u.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            users = users.Where(u => NormalizeStatus(u.AccountStatus) == NormalizeStatus(statusFilter)).ToList();
+        }
+
+        return users;
+    }
+
+    private static string NormalizeStatus(string? status)
+    {
+        return status?.Trim().ToLowerInvariant() ?? string.Empty;
+    }
+
+    private void ViewUserDetails(UserInfo user)
+    {
+        selectedUser = user;
+        showUserModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseUserModal()
+    {
+        showUserModal = false;
+        selectedUser = null;
+        StateHasChanged();
+    }
+
+    private async Task SuspendUser(UserInfo user)
+    {
+        var response = await ApiService.PostAsync<ApiResponse<object>>($"/api/admin/UserData/suspend/{user.Id}", null);
+        if (response?.IsSuccess == true)
+        {
+            user.AccountStatus = "Suspended";
+            alertMessage = $"User {user.Name} has been suspended.";
+            alertType = "warning";
+        }
+        else
+        {
+            alertMessage = $"Failed to suspend user: {response?.Message ?? "Unknown error"}";
+            alertType = "danger";
+        }
+        StateHasChanged();
+        await Task.Delay(3000);
+        alertMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task ActivateUser(UserInfo user)
+    {
+        var response = await ApiService.PostAsync<ApiResponse<object>>($"/api/admin/UserData/activate/{user.Id}", null);
+        if (response?.IsSuccess == true)
+        {
+            user.AccountStatus = "Active";
+            alertMessage = $"User {user.Name} has been activated.";
+            alertType = "success";
+        }
+        else
+        {
+            alertMessage = $"Failed to activate user: {response?.Message ?? "Unknown error"}";
+            alertType = "danger";
+        }
+        StateHasChanged();
+        await Task.Delay(3000);
+        alertMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task BanUser(UserInfo user)
+    {
+        var response = await ApiService.PostAsync<ApiResponse<object>>($"/api/admin/UserData/ban/{user.Id}", null);
+        if (response?.IsSuccess == true)
+        {
+            user.AccountStatus = "Banned";
+            alertMessage = $"User {user.Name} has been banned.";
+            alertType = "danger";
+        }
+        else
+        {
+            alertMessage = $"Failed to ban user: {response?.Message ?? "Unknown error"}";
+            alertType = "danger";
+        }
+        StateHasChanged();
+        await Task.Delay(3000);
+        alertMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task UnbanUser(UserInfo user)
+    {
+        var response = await ApiService.PostAsync<ApiResponse<object>>($"/api/admin/UserData/activate/{user.Id}", null);
+        if (response?.IsSuccess == true)
+        {
+            user.AccountStatus = "Active";
+            alertMessage = $"User {user.Name} has been unbanned and reactivated.";
+            alertType = "success";
+        }
+        else
+        {
+            alertMessage = $"Failed to unban user: {response?.Message ?? "Unknown error"}";
+            alertType = "danger";
+        }
+        StateHasChanged();
+        await Task.Delay(3000);
+        alertMessage = null;
+        StateHasChanged();
+    }
+
+    private string GetStatusBadgeClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "active" or "verified" => "bg-success",
+            "suspended" => "bg-warning",
+            "banned" => "bg-danger",
+            "pending" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+}

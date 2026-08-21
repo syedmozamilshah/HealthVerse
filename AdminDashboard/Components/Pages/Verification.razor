@@ -1,0 +1,656 @@
+@rendermode InteractiveServer
+@page "/verification"
+@using AdminDashboard.Components.Shared
+@using AdminDashboard.Services
+@inject ApiService ApiService
+
+<PageTitle>Doctor Verification - HealthVerse Admin</PageTitle>
+
+<div class="verification-page">
+    <h1 class="h3 fw-bold text-dark mb-4">Doctor Verification Queue</h1>
+    
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "first" ? "active" : "")" @onclick="@(() => SwitchTab("first"))">
+                <i class="bi bi-person-check me-1"></i>First Verification
+                @if (firstVerificationDoctors.Count > 0)
+                {
+                    <span class="badge bg-primary ms-2">@firstVerificationDoctors.Count</span>
+                }
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "reverification" ? "active" : "")" @onclick="@(() => SwitchTab("reverification"))">
+                <i class="bi bi-arrow-repeat me-1"></i>Re-Verification
+                @if (reVerificationDoctors.Count > 0)
+                {
+                    <span class="badge bg-warning text-dark ms-2">@reVerificationDoctors.Count</span>
+                }
+            </button>
+        </li>
+    </ul>
+    
+    @if (isLoading)
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th><div class="skeleton skeleton-text" style="width: 150px;"></div></th>
+                                <th><div class="skeleton skeleton-text" style="width: 200px;"></div></th>
+                                <th><div class="skeleton skeleton-text" style="width: 100px;"></div></th>
+                                <th><div class="skeleton skeleton-text" style="width: 120px;"></div></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for(int i=0; i<5; i++)
+                            {
+                                <tr>
+                                    <td><div class="skeleton skeleton-text" style="width: 140px;"></div></td>
+                                    <td><div class="skeleton skeleton-text" style="width: 220px;"></div></td>
+                                    <td><div class="skeleton skeleton-text" style="width: 80px; border-radius: 12px;"></div></td>
+                                    <td><div class="skeleton skeleton-text" style="width: 140px; height: 32px; border-radius: 4px;"></div></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        var currentList = activeTab == "first" ? firstVerificationDoctors : reVerificationDoctors;
+        
+        @if (currentList.Count == 0)
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">No Pending @(activeTab == "first" ? "Verification" : "Re-Verification") Requests</h5>
+                    <p class="text-muted">All doctor applications have been processed.</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm animate-fade-in">
+                <div class="card-body">
+                    <DataTable TItem="PendingDoctorInfo" Items="@currentList" EnableActions="false">
+                        <HeaderTemplate>
+                            <th>Doctor Name</th>
+                            <th>Email</th>
+                            <th>License Number</th>
+                            <th>Specialization</th>
+                            <th>PMDC Status</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </HeaderTemplate>
+                        <RowTemplate Context="doctor">
+                            <td class="fw-medium">@doctor.Name</td>
+                            <td class="text-muted">@doctor.Email</td>
+                            <td>@doctor.LicenceNumber</td>
+                            <td>@doctor.Specialization</td>
+                            <td>
+                                @if (doctor.IsPmdcVerified)
+                                {
+                                    <span class="badge bg-success" title="@doctor.PmdcVerifiedName">
+                                        <i class="bi bi-patch-check-fill me-1"></i>Verified
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger" title="@doctor.PmdcVerificationMessage">
+                                        <i class="bi bi-x-circle me-1"></i>Not Verified
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (doctor.IsReVerificationRequired)
+                                {
+                                    <span class="badge bg-warning text-dark">Re-Verification</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">First Verification</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" @onclick="() => OpenReviewModal(doctor)">
+                                    <i class="bi bi-eye me-1"></i>Review Documents
+                                </button>
+                            </td>
+                        </RowTemplate>
+                    </DataTable>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Review Modal -->
+    <AdminDashboard.Components.Shared.Modal IsVisible="@showReviewModal" 
+           Title="@($"Review Application - {selectedDoctor?.Name}")" 
+           Size="xl"
+           OnClose="CloseReviewModal">
+        <ChildContent>
+            @if (isLoadingDetails)
+            {
+                <div class="p-4">
+                    <div class="mb-4">
+                        <div class="skeleton skeleton-text" style="width: 200px; height: 24px; margin-bottom: 1rem;"></div>
+                        <div class="bg-light p-3 rounded">
+                            <div class="row g-3">
+                                @for(int i=0; i<8; i++)
+                                {
+                                    <div class="col-12">
+                                        <div class="skeleton skeleton-text" style="width: 40%; display: inline-block; margin-right: 10px;"></div>
+                                        <div class="skeleton skeleton-text" style="width: 50%; display: inline-block;"></div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="skeleton skeleton-text" style="width: 150px; margin-bottom: 0.5rem;"></div>
+                        <div class="skeleton skeleton-rect" style="height: 100px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            }
+            else if (selectedDoctor != null && doctorDetails != null)
+            {
+                <div class="row animate-fade-in">
+                    <!-- Left Column - Personal Info -->
+                    <div class="col-md-5">
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="bi bi-person-badge me-2"></i>Personal Information
+                            </h6>
+                            <div class="bg-light p-3 rounded">
+                                <div class="row g-2">
+                                    <div class="col-12"><strong>Name:</strong> @selectedDoctor.Name</div>
+                                    <div class="col-12"><strong>Email:</strong> @selectedDoctor.Email</div>
+                                    <div class="col-12">
+                                        <strong>License Number:</strong> 
+                                        <span class="text-primary fw-bold">@doctorDetails.LicenceNumber</span>
+                                        @if (doctorDetails.IsLicenseInfoLocked)
+                                        {
+                                            <i class="bi bi-lock-fill text-warning ms-1" title="Locked"></i>
+                                        }
+                                    </div>
+                                    <div class="col-12"><strong>Speciality:</strong> @doctorDetails.Speciality</div>
+                                    <div class="col-12">
+                                        <strong>Specialization:</strong> 
+                                        <span class="text-primary fw-bold">@doctorDetails.Specialization</span>
+                                        @if (doctorDetails.IsLicenseInfoLocked)
+                                        {
+                                            <i class="bi bi-lock-fill text-warning ms-1" title="Locked"></i>
+                                        }
+                                    </div>
+                                    <div class="col-12"><strong>Experience:</strong> @doctorDetails.Experience years</div>
+                                    <div class="col-12"><strong>Consultation Fee:</strong> Rs. @doctorDetails.Fee</div>
+                                    <div class="col-12"><strong>Renewal Date:</strong> @doctorDetails.RenewalDate.ToDisplayString("MMM dd, yyyy")</div>
+                                    <div class="col-12"><strong>Availability:</strong> 
+                                        <span class="badge @(doctorDetails.IsAvailable ? "bg-success" : "bg-secondary")">
+                                            @(doctorDetails.IsAvailable ? "Available" : "Not Available")
+                                        </span>
+                                    </div>
+                                    @if (doctorDetails.ClinicInfo != null)
+                                    {
+                                        <div class="col-12"><strong>Clinic Location:</strong> @doctorDetails.ClinicInfo.Location</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verification Status -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="bi bi-shield-check me-2"></i>Verification Status
+                            </h6>
+                            <div class="bg-light p-3 rounded">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2">Type:</span>
+                                    @if (selectedDoctor.IsReVerificationRequired)
+                                    {
+                                        <span class="badge bg-warning text-dark">Re-Verification Request</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info">First Verification</span>
+                                    }
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2">License Info Locked:</span>
+                                    @if (doctorDetails.IsLicenseInfoLocked)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-lock-fill me-1"></i>Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary"><i class="bi bi-unlock me-1"></i>No</span>
+                                    }
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2">PMDC Verification:</span>
+                                    @if (selectedDoctor.IsPmdcVerified)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-patch-check-fill me-1"></i>Verified from PMDC</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Not Verified from PMDC</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(selectedDoctor.PmdcVerifiedName))
+                                {
+                                    <div class="mt-2 small text-muted">
+                                        <strong>PMDC Name:</strong> @selectedDoctor.PmdcVerifiedName
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(selectedDoctor.PmdcVerificationMessage))
+                                {
+                                    <div class="mt-1 small text-muted">
+                                        <strong>PMDC Message:</strong> @selectedDoctor.PmdcVerificationMessage
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Review Notes -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-journal-text me-2"></i>Review Notes (Optional)
+                            </label>
+                            <textarea class="form-control" rows="3" @bind="rejectionReason" 
+                                      placeholder="Add rejection reason or notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Documents -->
+                    <div class="col-md-7">
+                        <h6 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-file-earmark-image me-2"></i>Verification Documents
+                        </h6>
+                        
+                        <div class="row g-3">
+                            <!-- CNIC Front -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white py-2">
+                                        <small class="fw-bold"><i class="bi bi-credit-card me-1"></i>CNIC Front</small>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        @if (!string.IsNullOrEmpty(doctorDetails.CNICFrontImage))
+                                        {
+                                            <img src="@doctorDetails.CNICFrontImage" alt="CNIC Front" 
+                                                 class="img-fluid rounded cursor-pointer" 
+                                                 style="max-height: 150px; width: 100%; object-fit: cover;"
+                                                 @onclick="@(() => OpenImageModal(doctorDetails.CNICFrontImage, "CNIC Front"))" />
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center text-muted py-4">
+                                                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                                                <p class="mb-0 small">Not uploaded</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CNIC Back -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white py-2">
+                                        <small class="fw-bold"><i class="bi bi-credit-card-2-back me-1"></i>CNIC Back</small>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        @if (!string.IsNullOrEmpty(doctorDetails.CNICBackImage))
+                                        {
+                                            <img src="@doctorDetails.CNICBackImage" alt="CNIC Back" 
+                                                 class="img-fluid rounded cursor-pointer" 
+                                                 style="max-height: 150px; width: 100%; object-fit: cover;"
+                                                 @onclick="@(() => OpenImageModal(doctorDetails.CNICBackImage, "CNIC Back"))" />
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center text-muted py-4">
+                                                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                                                <p class="mb-0 small">Not uploaded</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MBBS Certificate -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white py-2">
+                                        <small class="fw-bold"><i class="bi bi-award me-1"></i>MBBS Certificate</small>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        @if (!string.IsNullOrEmpty(doctorDetails.MBBSImage))
+                                        {
+                                            <img src="@doctorDetails.MBBSImage" alt="MBBS Certificate" 
+                                                 class="img-fluid rounded cursor-pointer" 
+                                                 style="max-height: 150px; width: 100%; object-fit: cover;"
+                                                 @onclick="@(() => OpenImageModal(doctorDetails.MBBSImage, "MBBS Certificate"))" />
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center text-muted py-4">
+                                                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                                                <p class="mb-0 small">Not uploaded</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FCPS Certificate -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-info text-white py-2">
+                                        <small class="fw-bold"><i class="bi bi-mortarboard me-1"></i>FCPS Certificate</small>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        @if (!string.IsNullOrEmpty(doctorDetails.FCPSImage))
+                                        {
+                                            <img src="@doctorDetails.FCPSImage" alt="FCPS Certificate" 
+                                                 class="img-fluid rounded cursor-pointer" 
+                                                 style="max-height: 150px; width: 100%; object-fit: cover;"
+                                                 @onclick="@(() => OpenImageModal(doctorDetails.FCPSImage, "FCPS Certificate"))" />
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center text-muted py-4">
+                                                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                                                <p class="mb-0 small">Not uploaded (Optional)</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PMDC License -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-warning text-dark py-2">
+                                        <small class="fw-bold"><i class="bi bi-file-medical me-1"></i>PMDC License</small>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        @if (!string.IsNullOrEmpty(doctorDetails.LicenseImage))
+                                        {
+                                            <img src="@doctorDetails.LicenseImage" alt="PMDC License" 
+                                                 class="img-fluid rounded cursor-pointer" 
+                                                 style="max-height: 200px; width: 100%; object-fit: contain;"
+                                                 @onclick="@(() => OpenImageModal(doctorDetails.LicenseImage, "PMDC License"))" />
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center text-muted py-4">
+                                                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                                                <p class="mb-0 small">Not uploaded</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning animate-fade-in">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Unable to load doctor details. Please try again.
+                </div>
+            }
+        </ChildContent>
+        <FooterTemplate>
+            @if (isProcessing)
+            {
+                <button class="btn btn-secondary" disabled>
+                    <span class="spinner-border spinner-border-sm me-1"></span>Processing...
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-danger" @onclick="RejectDoctor" disabled="@(selectedDoctor == null)">
+                    <i class="bi bi-x-circle me-1"></i>Reject Application
+                </button>
+                <button class="btn btn-success" @onclick="ApproveDoctor" disabled="@(selectedDoctor == null)">
+                    <i class="bi bi-check-circle me-1"></i>Approve Application
+                </button>
+            }
+        </FooterTemplate>
+    </AdminDashboard.Components.Shared.Modal>
+
+    <!-- Image Preview Modal -->
+    <AdminDashboard.Components.Shared.Modal IsVisible="@showImageModal" 
+           Title="@imageModalTitle" 
+           Size="lg"
+           OnClose="CloseImageModal">
+        <ChildContent>
+            <div class="text-center">
+                <img src="@currentImageUrl" alt="@imageModalTitle" class="img-fluid" style="max-height: 70vh;" />
+            </div>
+        </ChildContent>
+        <FooterTemplate>
+            <a href="@currentImageUrl" target="_blank" class="btn btn-primary">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Open in New Tab
+            </a>
+            <button class="btn btn-secondary" @onclick="CloseImageModal">Close</button>
+        </FooterTemplate>
+    </AdminDashboard.Components.Shared.Modal>
+</div>
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cursor-pointer:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private bool isLoadingDetails = false;
+    private bool isProcessing = false;
+    private bool showReviewModal = false;
+    private bool showImageModal = false;
+    private string activeTab = "first";
+    private string rejectionReason = "";
+    private string currentImageUrl = "";
+    private string imageModalTitle = "";
+    
+    private PendingDoctorInfo? selectedDoctor = null;
+    private DoctorDetails? doctorDetails = null;
+
+    private List<PendingDoctorInfo> firstVerificationDoctors = new();
+    private List<PendingDoctorInfo> reVerificationDoctors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    // M-9 USED FOR LOADING VERIFICATION DATA
+    private async Task LoadData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Fetch pending verification doctors from new endpoint
+            var response = await ApiService.GetAsync<ApiResponse<List<PendingDoctorInfo>>>("/api/admin/Verification/pending");
+            if (response?.IsSuccess == true && response.Data != null)
+            {
+                // Separate first verification and re-verification
+                firstVerificationDoctors = response.Data
+                    .Where(d => !d.IsReVerificationRequired)
+                    .ToList();
+                    
+                reVerificationDoctors = response.Data
+                    .Where(d => d.IsReVerificationRequired)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading verification data: {ex.Message}");
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private async Task OpenReviewModal(PendingDoctorInfo doctor)
+    {
+        selectedDoctor = doctor;
+        doctorDetails = null;
+        rejectionReason = "";
+        showReviewModal = true;
+        isLoadingDetails = true;
+        StateHasChanged();
+
+        try
+        {
+            // Fetch detailed information including verification documents
+            var detailsResponse = await ApiService.GetAsync<ApiResponse<DoctorDetails>>($"/api/admin/Verification/pending/{doctor.DoctorId}");
+            if (detailsResponse?.IsSuccess == true && detailsResponse.Data != null)
+            {
+                doctorDetails = detailsResponse.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading doctor details: {ex.Message}");
+        }
+
+        isLoadingDetails = false;
+        StateHasChanged();
+    }
+
+    private void CloseReviewModal()
+    {
+        showReviewModal = false;
+        selectedDoctor = null;
+        doctorDetails = null;
+        rejectionReason = "";
+    }
+
+    private void OpenImageModal(string imageUrl, string title)
+    {
+        currentImageUrl = imageUrl;
+        imageModalTitle = title;
+        showImageModal = true;
+    }
+
+    private void CloseImageModal()
+    {
+        showImageModal = false;
+        currentImageUrl = "";
+        imageModalTitle = "";
+    }
+
+    // M-9 USED FOR APPROVING DOCTOR VERIFICATION
+    private async Task ApproveDoctor()
+    {
+        if (selectedDoctor == null) return;
+        
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            string endpoint = selectedDoctor.IsReVerificationRequired 
+                ? $"/api/admin/Verification/approve-reverification/{selectedDoctor.DoctorId}"
+                : $"/api/admin/Verification/approve/{selectedDoctor.DoctorId}";
+                
+            var response = await ApiService.PostAsync<object, ApiResponse<object>>(endpoint, new { });
+            
+            if (response?.IsSuccess == true)
+            {
+                CloseReviewModal();
+                await LoadData(); // Refresh the list
+            }
+            else
+            {
+                Console.WriteLine($"Failed to approve: {response?.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving doctor: {ex.Message}");
+        }
+
+        isProcessing = false;
+        StateHasChanged();
+    }
+
+    private async Task RejectDoctor()
+    {
+        if (selectedDoctor == null) return;
+        
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var payload = new { Reason = rejectionReason };
+            var response = await ApiService.PostAsync<object, ApiResponse<object>>(
+                $"/api/admin/Verification/reject/{selectedDoctor.DoctorId}", 
+                payload);
+            
+            if (response?.IsSuccess == true)
+            {
+                CloseReviewModal();
+                await LoadData(); // Refresh the list
+            }
+            else
+            {
+                Console.WriteLine($"Failed to reject: {response?.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rejecting doctor: {ex.Message}");
+        }
+
+        isProcessing = false;
+        StateHasChanged();
+    }
+
+    // Model for pending doctors list
+    public class PendingDoctorInfo
+    {
+        public string DoctorId { get; set; } = "";
+        public string UserId { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string LicenceNumber { get; set; } = "";
+        public string Specialization { get; set; } = "";
+        public bool IsSubmittedForVerification { get; set; }
+        public bool IsReVerificationRequired { get; set; }
+        // PMDC Verification Status
+        public bool IsPmdcVerified { get; set; }
+        public string PmdcVerificationMessage { get; set; } = "";
+        public string PmdcVerifiedName { get; set; } = "";
+        public DateTime? PmdcVerificationDate { get; set; }
+    }
+}

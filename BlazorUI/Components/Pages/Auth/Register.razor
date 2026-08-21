@@ -1,0 +1,555 @@
+@rendermode InteractiveServer
+@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using System.Linq
+@using BlazorUI.Models
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Forms
+@using NetcodeHub.Packages.Components.Toast
+@inject IHttpClientFactory HttpClientFactory
+@inject ProtectedSessionStorage SessionStorage
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+    .register-page {
+        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+    .custom-card {
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        padding: 2.5rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .custom-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1.5rem 4rem rgba(0,0,0,.15)!important;
+    }
+    
+    .form-control-modern {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+    .form-control-modern:focus {
+        border-color: #198754;
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15);
+        background-color: #fff !important;
+    }
+    .form-control-modern:hover {
+        background-color: #f8f9fa !important;
+        border-color: #ced4da;
+    }
+
+    .btn-modern {
+        background-color: #198754;
+        border: none;
+        border-radius: 50px;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-modern:hover {
+        background-color: #146c43;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
+    }
+    .btn-modern:active {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+    }
+
+    .link-modern {
+        position: relative;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+    .link-modern:hover {
+        color: #146c43 !important;
+        letter-spacing: 0.5px;
+    }
+    
+    .password-toggle {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 1px solid #dee2e6;
+        border-left: none;
+    }
+    .password-toggle:hover {
+        background-color: #e2e6ea !important;
+    }
+    .password-toggle:hover i {
+        color: #198754 !important;
+    }
+
+    @@media (max-width: 768px) {
+        .custom-card { padding: 1.25rem !important; margin: 0 12px; }
+        .col-lg-5.col-md-6 { padding: 0; }
+        .btn-modern { width: 100%; }
+        .form-control { font-size: 1rem; }
+    }
+
+    /* Password strength UI */
+    .password-criteria { display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem; }
+    .criteria-item { padding:6px 10px; border-radius:999px; font-size:0.875rem; display:inline-flex; align-items:center; gap:6px; }
+    .criteria-item.success { background: rgba(25,135,84,0.06); color:#198754; border:1px solid rgba(25,135,84,0.12); }
+    .criteria-item.danger { background: rgba(220,53,69,0.04); color:#dc3545; border:1px solid rgba(220,53,69,0.08); }
+    .password-input-strong { box-shadow: 0 0 0 0.2rem rgba(25,135,84,0.12); border-color: #198754 !important; }
+    .password-input-weak { box-shadow: 0 0 0 0.2rem rgba(220,53,69,0.08); border-color: #dc3545 !important; }
+</style>
+
+<NetcodeHubToast @ref="ToastComponent" 
+                 Position="bottom-right" 
+                 Duration="5000" 
+                 Persist="false" />
+
+<div class="register-page d-flex flex-column">
+    
+    <!-- Logo Header -->
+    <div class="container-fluid pt-4 ps-5">
+        <div class="d-flex align-items-center gap-2">
+            <img src="images/logo.png" alt="HealthVerse" style="height: 45px;" />
+            <div>
+                <h5 class="fw-bold mb-0 text-dark" style="letter-spacing: 1px;">HEALTHVERSE</h5>
+                <small class="text-muted" style="font-size: 0.85rem;">Your Digital Health Companion</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-grow-1 d-flex align-items-center py-4">
+        <div class="container">
+            <div class="row align-items-center justify-content-center">
+                
+                <!-- Left Side: Register Form -->
+                <div class="col-lg-5 col-md-6 mb-5 mb-md-0">
+                    <div class="bg-white custom-card">
+                        <div class="mb-4">
+                            <h3 class="fw-bold text-dark">Create your account</h3>
+                            <p class="text-muted">Register to Start your journey</p>
+                        </div>
+
+                        <EditForm Model="@user" OnValidSubmit="SendRequest" FormName="RegisterForm">
+                            <DataAnnotationsValidator />
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <InputText @bind-Value="user.FirstName"
+                                                class="form-control rounded-3 form-control-modern"
+                                                id="firstNameInput"
+                                                placeholder="First Name" />
+                                        <label for="firstNameInput">First Name</label>
+                                        <ValidationMessage For="@(() => user.FirstName)" class="text-danger small"/>
+                                        @if (!string.IsNullOrEmpty(firstNameError))
+                                        {
+                                            <div class="small text-danger">@firstNameError</div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <InputText @bind-Value="user.LastName"
+                                                class="form-control rounded-3 form-control-modern"
+                                                id="lastNameInput"
+                                                placeholder="Last Name" />
+                                        <label for="lastNameInput">Last Name</label>
+                                        <ValidationMessage For="@(() => user.LastName)" class="text-danger small"/>
+                                        @if (!string.IsNullOrEmpty(lastNameError))
+                                        {
+                                            <div class="small text-danger">@lastNameError</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="user.Address"
+                                        class="form-control rounded-3 form-control-modern"
+                                        id="addressInput"
+                                        placeholder="Address" />
+                                <label for="addressInput">Address</label>
+                                <ValidationMessage For="@(() => user.Address)" class="text-danger small"/>
+                                @if (!string.IsNullOrEmpty(addressError))
+                                {
+                                    <div class="small text-danger">@addressError</div>
+                                }
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="user.Email"
+                                        type="email"
+                                        class="form-control rounded-3 form-control-modern"
+                                        id="emailInput"
+                                        placeholder="name@example.com" />
+                                <label for="emailInput">Email</label>
+                                <ValidationMessage For="@(() => user.Email)" class="text-danger small"/>
+                                @if (!string.IsNullOrEmpty(emailError))
+                                {
+                                    <div class="small text-danger">@emailError</div>
+                                }
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <InputSelect @bind-Value="user.Gender"
+                                            class="form-select rounded-3 form-control-modern"
+                                            id="genderSelect">
+                                    <option value="">-- Select Gender --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </InputSelect>
+                                <label for="genderSelect">Gender</label>
+                                <ValidationMessage For="@(() => user.Gender)" class="text-danger small"/>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <div class="form-floating flex-grow-1">
+                                        <InputText @bind-Value="user.Password"
+                                            type="@passwordType"
+                                            class="@($"form-control rounded-start-3 rounded-end-0 form-control-modern {passwordInputClass}")"
+                                            id="passwordInput"
+                                            placeholder="Password" 
+                                            style="border-right: none;"
+                                            @oninput="OnPasswordInput" />
+                                        <label for="passwordInput">Password</label>
+                                    </div>
+                                    <span class="input-group-text bg-white rounded-end-3 password-toggle" @onclick="TogglePasswordVisibility">
+                                        <i class="@passwordIcon text-muted"></i>
+                                    </span>
+                                </div>
+                                <ValidationMessage For="@(() => user.Password)" class="text-danger small"/>
+
+                                <!-- Password strength criteria -->
+                                <div class="mt-2">
+                                    <small class="d-block mb-1 text-muted">Password must meet 5 of the following:</small>
+                                    <div class="password-criteria">
+                                        <span class="criteria-item @(hasMinLength ? "success" : "danger")">
+                                            <i class="bi @(hasMinLength ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                            Min 8
+                                        </span>
+                                        <span class="criteria-item @(hasLowercase ? "success" : "danger")">
+                                            <i class="bi @(hasLowercase ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                            Lowercase
+                                        </span>
+                                        <span class="criteria-item @(hasUppercase ? "success" : "danger")">
+                                            <i class="bi @(hasUppercase ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                            Uppercase
+                                        </span>
+                                        <span class="criteria-item @(hasDigit ? "success" : "danger")">
+                                            <i class="bi @(hasDigit ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                            Number
+                                        </span>
+                                        <span class="criteria-item @(hasSpecial ? "success" : "danger")">
+                                            <i class="bi @(hasSpecial ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                            Special
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="input-group">
+                                    <div class="form-floating flex-grow-1">
+                                        <InputText @bind-Value="user.ConfirmPassword"
+                                                type="@confirmPasswordType"
+                                                class="form-control rounded-start-3 rounded-end-0 form-control-modern"
+                                                id="confirmPasswordInput"
+                                                placeholder="Confirm Password" 
+                                                style="border-right: none;"/>
+                                        <label for="confirmPasswordInput">Confirm Password</label>
+                                    </div>
+                                    <span class="input-group-text bg-white rounded-end-3 password-toggle" @onclick="ToggleConfirmPasswordVisibility">
+                                        <i class="@confirmPasswordIcon text-muted"></i>
+                                    </span>
+                                </div>
+                                <ValidationMessage For="@(() => user.ConfirmPassword)" class="text-danger small"/>
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" 
+                                        class="btn btn-modern text-white shadow-sm" 
+                                        disabled="@isVisible">
+                                    @if (isVisible)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>Signing Up...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Sign Up</span>
+                                    }
+                                </button>
+                            </div>
+
+                            <div class="text-center">
+                                <span class="text-muted">Already have an account? </span>
+                                <a href="/login" class="text-success fw-bold link-modern">Sign In</a>
+                            </div>
+
+                        </EditForm>
+                    </div>
+                </div>
+
+                <!-- Right Side: Image -->
+                <div class="col-lg-6 col-md-6 offset-lg-1 d-none d-md-block text-center">
+                    <img src="images/hero-doctors.png" 
+                         class="img-fluid" 
+                         style="max-height: 85vh; object-fit: contain;" 
+                         alt="Doctors Team" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private User user = new();
+    private string apiResponse = "";
+    private NetcodeHubToast? ToastComponent;
+    bool isVisible = false;
+    
+    bool showPassword = false;
+    bool showConfirmPassword = false;
+
+    // Password strength flags
+    bool hasMinLength = false;
+    bool hasLowercase = false;
+    bool hasUppercase = false;
+    bool hasDigit = false;
+    bool hasSpecial = false;
+    string passwordInputClass = string.Empty;
+
+    // Field-specific errors (client-side)
+    string firstNameError = string.Empty;
+    string lastNameError = string.Empty;
+    string emailError = string.Empty;
+    string addressError = string.Empty;
+
+    string passwordType => showPassword ? "text" : "password";
+    string passwordIcon => showPassword ? "bi bi-eye" : "bi bi-eye-slash";
+
+    string confirmPasswordType => showConfirmPassword ? "text" : "password";
+    string confirmPasswordIcon => showConfirmPassword ? "bi bi-eye" : "bi bi-eye-slash";
+
+    void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    void ToggleConfirmPasswordVisibility()
+    {
+        showConfirmPassword = !showConfirmPassword;
+    }
+
+    private void OnPasswordInput(ChangeEventArgs e)
+    {
+        var val = e?.Value?.ToString() ?? string.Empty;
+        user.Password = val;
+        UpdatePasswordCriteria(val);
+    }
+
+    private void UpdatePasswordCriteria(string pwd)
+    {
+        hasMinLength = pwd.Length >= 8;
+        hasLowercase = System.Text.RegularExpressions.Regex.IsMatch(pwd, "[a-z]");
+        hasUppercase = System.Text.RegularExpressions.Regex.IsMatch(pwd, "[A-Z]");
+        hasDigit = System.Text.RegularExpressions.Regex.IsMatch(pwd, "[0-9]");
+        hasSpecial = System.Text.RegularExpressions.Regex.IsMatch(pwd, "[\\W_]");
+        var satisfied = new []{hasMinLength, hasLowercase, hasUppercase, hasDigit, hasSpecial}.Count(b => b);
+        if (satisfied >= 5) passwordInputClass = "password-input-strong";
+        else if (satisfied == 0) passwordInputClass = string.Empty;
+        else passwordInputClass = "password-input-weak";
+        StateHasChanged();
+    }
+
+    private bool ValidateAll()
+    {
+        firstNameError = string.Empty;
+        lastNameError = string.Empty;
+        emailError = string.Empty;
+        addressError = string.Empty;
+
+        // First/Last name: at least 3 letters, no digits
+        if (string.IsNullOrWhiteSpace(user.FirstName) || user.FirstName.Trim().Length < 3 || System.Text.RegularExpressions.Regex.IsMatch(user.FirstName, "[0-9]"))
+            firstNameError = "Please enter a valid first name (at least 3 letters, no numbers).";
+
+        if (string.IsNullOrWhiteSpace(user.LastName) || user.LastName.Trim().Length < 3 || System.Text.RegularExpressions.Regex.IsMatch(user.LastName, "[0-9]"))
+            lastNameError = "Please enter a valid last name (at least 3 letters, no numbers).";
+
+        // Address: min 10, max 150
+        if (string.IsNullOrWhiteSpace(user.Address) || user.Address.Trim().Length < 10 || user.Address.Trim().Length > 150)
+            addressError = "Please enter a valid address (10-150 characters).";
+
+        // Email: basic structural checks plus gmail rules
+        if (string.IsNullOrWhiteSpace(user.Email))
+        {
+            emailError = "Please enter your email address.";
+        }
+        else
+        {
+            var email = user.Email.Trim();
+            // local-part (before @) length requirement: 6-30
+            if (!email.Contains("@"))
+            {
+                emailError = "Please enter a valid email address.";
+            }
+            else
+            {
+                var parts = email.Split('@');
+                if (parts.Length != 2) emailError = "Please enter a valid email address.";
+                else
+                {
+                    var local = parts[0];
+                    var domain = parts[1];
+                    // enforce local-part length 6-30
+                    if (local.Length < 6 || local.Length > 30)
+                    {
+                        emailError = "The part before @ must be between 6 and 30 characters.";
+                    }
+                    else
+                    {
+                        var domainParts = domain.Split('.');
+                        if (domainParts.Length < 2)
+                        {
+                            emailError = "Email domain must include a top-level domain (e.g. .com).";
+                        }
+                        else
+                        {
+                            var tld = domainParts.Last();
+                            if (tld.Length < 2)
+                            {
+                                emailError = "Top-level domain looks too short.";
+                            }
+
+                            var domainLabel = domainParts[0];
+                            // If domain label starts with 'g' enforce gmail.com
+                            if (domainLabel.StartsWith("g", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!domainLabel.Equals("gmail", StringComparison.OrdinalIgnoreCase) || !domain.EndsWith(".com", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    emailError = "If using Google mail, please provide a full gmail.com address.";
+                                }
+                            }
+
+                            // final structural sanity check (simple regex)
+                            if (string.IsNullOrEmpty(emailError))
+                            {
+                                var simpleEmailOk = System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+                                if (!simpleEmailOk) emailError = "Please enter a valid email address.";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return string.IsNullOrEmpty(firstNameError) && string.IsNullOrEmpty(lastNameError) && string.IsNullOrEmpty(emailError) && string.IsNullOrEmpty(addressError);
+    }
+
+@* M-1 CALLING API FOR REGISTERATION *@
+
+    private async Task SendRequest()
+    {
+        try
+        {
+            // Client-side validations
+            var allOk = ValidateAll();
+            var satisfied = new []{hasMinLength, hasLowercase, hasUppercase, hasDigit, hasSpecial}.Count(b => b);
+            if (!allOk)
+            {
+                await ToastComponent!.ShowDangerToast("Validation Error", "Please fix the highlighted fields before continuing.");
+                return;
+            }
+            if (satisfied < 3)
+            {
+                await ToastComponent!.ShowDangerToast("Weak Password", "Please choose a stronger password (at least 3 of the listed criteria). ");
+                return;
+            }
+
+            if (user.Password != user.ConfirmPassword)
+            {
+                await ToastComponent!.ShowDangerToast("Password Mismatch", "Passwords do not match.");
+                return;
+            }
+
+            isVisible = true;
+            StateHasChanged();
+            Console.WriteLine("Submit clicked");
+            Console.WriteLine($"Email: {user.Email}, Password: {user.Password}");
+
+            var client = HttpClientFactory.CreateClient("API");
+            user.ProfileType="doctor";
+            user.ProfileImage="https://res.cloudinary.com/drgugfrhu/image/upload/v1776698710/user_profiles/scpo72votf8ll7ycsgot.png";
+            var response = await client.PostAsJsonAsync("api/Auth/register", user);
+
+            Console.WriteLine("Status code: " + response);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("Raw API response: " + result);
+
+                apiResponse = result;
+
+                var loginResult = await response.Content.ReadFromJsonAsync<RegisterLoginResponse>();
+                if (loginResult != null && loginResult.IsSuccess)
+                {
+                    await SessionStorage.SetAsync("authToken", loginResult.Token);
+                    await SessionStorage.SetAsync("currentUser", loginResult.User);
+
+                    apiResponse = $"Welcome {loginResult.User.FirstName}!";
+                    await ToastComponent!.ShowSuccessToast("Registration Successful", "A verification email has been sent to your email address. Please verify to login.");
+                    await Task.Delay(3000); // Wait for user to see the success message
+                    Navigation.NavigateTo("/login", forceLoad: true); 
+                }
+            }
+            else
+            {
+                try
+                {
+                    var errorResult = await response.Content.ReadFromJsonAsync<RegisterLoginResponse>();
+                    if (errorResult != null && !string.IsNullOrEmpty(errorResult.Message))
+                    {
+                        apiResponse = errorResult.Message;
+                    }
+                    else
+                    {
+                        apiResponse = $"Error: Status {response.StatusCode}";
+                    }
+                }
+                catch
+                {
+                    apiResponse = $"Error: Status {response.StatusCode}";
+                }
+                Console.WriteLine("Error response: " + apiResponse);
+                await ToastComponent!.ShowDangerToast("Registration Failed", apiResponse);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Exception: " + ex);
+            apiResponse = $"Exception: {ex.Message}";
+            await ToastComponent!.ShowDangerToast("Error", apiResponse);
+
+
+        }finally{
+            isVisible = false;
+            StateHasChanged();
+        }
+
+    }
+  
+
+    
+}
+
+

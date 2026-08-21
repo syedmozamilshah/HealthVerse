@@ -1,0 +1,311 @@
+@rendermode InteractiveServer
+@page "/help"
+@using BlazorUI.Authentication
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedLocalStorage LocalStorage
+@inject NavigationManager Navigation
+@inject ApiClient ApiClient
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" />
+
+<style>
+    .faq-card { border-radius: 16px; }
+    .accordion-button { padding: 1rem 1.25rem; border-radius: 12px; }
+    .accordion-body { padding: 1rem 1.25rem; }
+
+    @@media (max-width: 768px) {
+        .card-body { padding: 1rem !important; }
+        .accordion-button { padding: 0.9rem 1rem; font-size: 0.95rem; }
+        .accordion-item { margin-bottom: 10px; }
+        .container-fluid { padding-left: 12px; padding-right: 12px; }
+        .bi { font-size: 1.05rem; }
+    }
+</style>
+
+<div class="container-fluid py-4" style="background: linear-gradient(135deg, #e3ffe6 0%, #d0f0db 35%, #f7fff9 100%); min-height: 100vh;">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-4">
+                <button class="btn btn-outline-success me-3" @onclick="GoBack">
+                    <i class="bi bi-arrow-left"></i> Back
+                </button>
+                <h2 class="mb-0"><i class="bi bi-question-circle me-2"></i>Frequently Asked Questions</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-10 mx-auto">
+            <div class="card" style="border: 1px solid #d8f3df; border-radius: 16px;">
+                <div class="card-header bg-success text-white" style="border-radius: 16px 16px 0 0;">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>HealthVerse Doctor Dashboard - FAQs</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="accordion" id="faqAccordion">
+                        
+                        <!-- Getting Started Section -->
+                        <div class="mb-3">
+                            <h6 class="text-success fw-bold mb-3"><i class="bi bi-rocket-takeoff me-2"></i>Getting Started</h6>
+                        </div>
+                        
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-person-check text-success me-2"></i>How do I get verified as a doctor on HealthVerse?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>To get verified on HealthVerse:</p>
+                                    <ol>
+                                        <li>Complete your profile with all required information (name, specialty, qualifications)</li>
+                                        <li>Upload your medical license and degree certificates</li>
+                                        <li>Provide your PMDC (Pakistan Medical & Dental Council) registration number</li>
+                                        <li>Wait for admin review (typically 24-48 hours)</li>
+                                        <li>You'll receive an email notification once verified</li>
+                                    </ol>
+                                    <p class="text-muted mb-0">Note: Only verified doctors can receive patient appointments.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-credit-card text-success me-2"></i>How does the subscription work?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>HealthVerse offers a simple subscription model:</p>
+                                    <ul>
+                                        <li><strong>Monthly Plan:</strong> Rs. 2000/month - unlimited patient consultations</li>
+                                        <li>Access to AI-powered prescription generation</li>
+                                        <li>Patient chat and communication tools</li>
+                                        <li>Eye disease diagnostic tools integration</li>
+                                    </ul>
+                                    <p class="mb-0">Navigate to <strong>Subscription</strong> in the sidebar to manage your billing and payment methods via Stripe.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Appointments Section -->
+                        <div class="mb-3 mt-4">
+                            <h6 class="text-success fw-bold mb-3"><i class="bi bi-calendar-check me-2"></i>Appointments</h6>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-calendar-event text-success me-2"></i>How do I view and manage patient appointments?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Your dashboard shows all appointments organized by status:</p>
+                                    <ul>
+                                        <li><strong>Today's Appointments:</strong> Patients scheduled for today</li>
+                                        <li><strong>Upcoming:</strong> Future scheduled appointments</li>
+                                        <li><strong>Pending:</strong> Appointments awaiting confirmation</li>
+                                        <li><strong>Missed:</strong> Appointments where patients didn't show up</li>
+                                    </ul>
+                                    <p class="mb-0">Click on any patient name to view their details, medical history, and start a consultation.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-person-x text-success me-2"></i>What happens if a patient misses their appointment?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>When a patient misses their appointment:</p>
+                                    <ul>
+                                        <li>The system automatically marks it as "Missed" after the scheduled time</li>
+                                        <li>The patient receives a notification via the mobile app</li>
+                                        <li>You can view missed appointments in the "Missed" tab</li>
+                                        <li>Patients can rebook through the mobile app</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Consultations Section -->
+                        <div class="mb-3 mt-4">
+                            <h6 class="text-success fw-bold mb-3"><i class="bi bi-clipboard2-pulse me-2"></i>Consultations & Prescriptions</h6>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-robot text-success me-2"></i>How does the AI-powered prescription generation work?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>HealthVerse uses LLM to assist with prescriptions:</p>
+                                    <ol>
+                                        <li>Click on a patient to start consultation</li>
+                                        <li>Review their symptoms and medical history</li>
+                                        <li>Use the chat feature to communicate with the AI assistant</li>
+                                        <li>The AI suggests diagnosis and medications based on the conversation</li>
+                                        <li>Review and modify the AI suggestions as needed</li>
+                                        <li>Generate and save the final prescription</li>
+                                    </ol>
+                                    <p class="text-warning mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Note: AI suggestions are advisory only. Always apply your professional medical judgment.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-file-earmark-medical text-success me-2"></i>How do I create and save a prescription?
+                                </button>
+                            </h2>
+                            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>To create a prescription:</p>
+                                    <ol>
+                                        <li>Open the patient's consultation from the dashboard</li>
+                                        <li>Navigate to the <strong>Prescription</strong> tab</li>
+                                        <li>Add diagnosis, medicines, dosage, and instructions</li>
+                                        <li>Click "Generate Prescription" to use AI assistance</li>
+                                        <li>Review the prescription content</li>
+                                        <li>Click "Save & Complete" to finalize</li>
+                                    </ol>
+                                    <p class="mb-0">The prescription is automatically saved to the patient's history and they receive a notification.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diagnostic Tools Section -->
+                        <div class="mb-3 mt-4">
+                            <h6 class="text-success fw-bold mb-3"><i class="bi bi-eye me-2"></i>Eye Diagnostic Tools</h6>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-gpu-card text-success me-2"></i>What diagnostic tools are available?
+                                </button>
+                            </h2>
+                            <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>HealthVerse integrates AI-powered eye diagnostic tools:</p>
+                                    <ul>
+                                        <li><strong>Diabetic Retinopathy Detection:</strong> Analyzes fundus images to detect DR stages (No DR, Mild, Moderate, Severe, Proliferative)</li>
+                                        <li><strong>Eye Disease Classifier:</strong> Identifies common eye conditions from images (Cataracts, Glaucoma, Macular Degeneration, etc.)</li>
+                                    </ul>
+                                    <p class="mb-0">Patients upload their eye images through the mobile app, and results appear in the consultation view.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-upload text-success me-2"></i>How do opthomologist doctors upload eye images for diagnosis?
+                                </button>
+                            </h2>
+                            <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Opthomologist Doctors can upload eye images :</p>
+                                    <ol>
+                                        <li>Opthomologist Doctor opens the appointment of particular patient</li>
+                                        <li>Goes to Image Upload section</li>
+                                        <li>Uploads fundus or eye images</li>
+                                        <li>The AI analyzes the images and generates results</li>
+                                        <li>Results appear in view along with the images</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+
+                       
+
+                        <!-- Account Section -->
+                        <div class="mb-3 mt-4">
+                            <h6 class="text-success fw-bold mb-3"><i class="bi bi-gear me-2"></i>Account & Settings</h6>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq11" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-person-gear text-success me-2"></i>How do I update my profile information?
+                                </button>
+                            </h2>
+                            <div id="faq11" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>To update your profile:</p>
+                                    <ol>
+                                        <li>Click <strong>Settings</strong> in the sidebar</li>
+                                        <li>Update your personal information (name, photo, bio)</li>
+                                        <li>Modify your consultation fees</li>
+                                        <li>Update your available time slots</li>
+                                        <li>Click "Save Changes" to apply</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item border-0 mb-2" style="background-color: #f8fdf9; border-radius: 12px;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq12" style="border-radius: 12px; background-color: transparent;">
+                                    <i class="bi bi-shield-check text-success me-2"></i>Is patient data secure on HealthVerse?
+                                </button>
+                            </h2>
+                            <div id="faq12" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Yes, HealthVerse takes data security seriously:</p>
+                                    <ul>
+                                        <li>All data is encrypted in transit (HTTPS)</li>
+                                        <li>Patient records are stored securely in MongoDB Atlas</li>
+                                        <li>JWT authentication for all API calls</li>
+                                        <li>Session management with secure tokens</li>
+                                        <li>Regular security audits and updates</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Support Card -->
+            <div class="card mt-4" style="border: 1px solid #d8f3df; border-radius: 16px;">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-headset text-success" style="font-size: 2.5rem;"></i>
+                    <h5 class="mt-3">Still have questions?</h5>
+                    <p class="text-muted">Contact our support team for additional help</p>
+                    <a href="mailto:waseerusman2@gmail.com" class="btn btn-success">
+                        <i class="bi bi-envelope me-2"></i>Email Support
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var client = await ApiClient.SetAuthorizedHeader();
+        if (client.DefaultRequestHeaders.Authorization == null)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+}

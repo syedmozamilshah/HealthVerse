@@ -1,0 +1,41 @@
+
+@* M-9 USED FOR DISPLAYING TAB CONTROL *@
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs">
+            @foreach (var tab in Tabs)
+            {
+                <li class="nav-item">
+                    <button class="nav-link @(ActiveTab == tab.Key ? "active" : "")" 
+                            @onclick="() => OnTabChanged(tab.Key)">
+                        @tab.Value
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="card-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Dictionary<string, string> Tabs { get; set; } = new();
+
+    [Parameter]
+    public string ActiveTab { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ActiveTabChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private async Task OnTabChanged(string tabKey)
+    {
+        ActiveTab = tabKey;
+        await ActiveTabChanged.InvokeAsync(tabKey);
+    }
+}

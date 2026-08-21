@@ -1,0 +1,265 @@
+@* M-9 USED FOR DISPLAYING DATA TABLE *@
+
+@typeparam TItem
+
+<div class="modern-datatable">
+    @if (EnableColumnFilters && Columns != null)
+    {
+        <div class="filter-row mb-3">
+            <div class="row g-2">
+                @foreach (var column in Columns)
+                {
+                    <div class="col">
+                        <input type="text" 
+                               class="form-control form-control-sm" 
+                               placeholder="Filter @column.Label..."
+                               @oninput="@(e => OnColumnFilterChanged(column.Property, e.Value?.ToString() ?? string.Empty))" />
+                    </div>
+                }
+                @if (EnableActions)
+                {
+                    <div class="col"></div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    @if (Columns != null)
+                    {
+                        @foreach (var column in Columns)
+                        {
+                            <th class="sortable-header @(currentSortColumn == column.Property ? "sorted" : "")" 
+                                @onclick="@(() => OnSort(column.Property))">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>@column.Label</span>
+                                    @if (currentSortColumn == column.Property)
+                                    {
+                                        <i class="bi @(sortAscending ? "bi-arrow-up" : "bi-arrow-down") ms-2"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-down-up ms-2 text-muted opacity-50"></i>
+                                    }
+                                </div>
+                            </th>
+                        }
+                    }
+                    else
+                    {
+                        @HeaderTemplate
+                    }
+                    @if (EnableActions)
+                    {
+                        <th>Actions</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (PaginatedItems != null && PaginatedItems.Any())
+                {
+                    @foreach (var item in PaginatedItems)
+                    {
+                        <tr>
+                            @(RowTemplate?.Invoke(item))
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="100" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            No data available
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (TotalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Rows per page:</span>
+                <select class="form-select form-select-sm" style="width: auto;" @onchange="OnPageSizeChanged">
+                    <option value="10" selected="@(PageSize == 10)">10</option>
+                    <option value="25" selected="@(PageSize == 25)">25</option>
+                    <option value="50" selected="@(PageSize == 50)">50</option>
+                    <option value="100" selected="@(PageSize == 100)">100</option>
+                </select>
+                <span class="text-muted small ms-3">
+                    Showing @((CurrentPage - 1) * PageSize + 1) - @Math.Min(CurrentPage * PageSize, TotalItems) of @TotalItems
+                </span>
+            </div>
+            
+            <nav aria-label="Table pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(1)" disabled="@(CurrentPage == 1)">
+                            <i class="bi bi-chevron-bar-left"></i>
+                        </button>
+                    </li>
+                    <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)" disabled="@(CurrentPage == 1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    
+                    @for (int i = Math.Max(1, CurrentPage - 2); i <= Math.Min(TotalPages, CurrentPage + 2); i++)
+                    {
+                        var pageNum = i;
+                        <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)" disabled="@(CurrentPage == TotalPages)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                    <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(TotalPages)" disabled="@(CurrentPage == TotalPages)">
+                            <i class="bi bi-chevron-bar-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<TItem>? Items { get; set; }
+
+    [Parameter]
+    public RenderFragment? HeaderTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem>? RowTemplate { get; set; }
+
+    [Parameter]
+    public List<ColumnDefinition>? Columns { get; set; }
+
+    [Parameter]
+    public bool EnableColumnFilters { get; set; } = true;
+
+    [Parameter]
+    public bool EnableActions { get; set; } = true;
+
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    private int CurrentPage = 1;
+    private string currentSortColumn = string.Empty;
+    private bool sortAscending = true;
+    private Dictionary<string, string> columnFilters = new();
+
+    private IEnumerable<TItem>? FilteredItems
+    {
+        get
+        {
+            if (Items == null) return null;
+
+            var filtered = Items.AsEnumerable();
+
+            if (Columns != null && columnFilters.Any())
+            {
+                foreach (var filter in columnFilters.Where(f => !string.IsNullOrWhiteSpace(f.Value)))
+                {
+                    var property = filter.Key;
+                    var value = filter.Value.ToLower();
+                    
+                    filtered = filtered.Where(item => 
+                    {
+                        var prop = typeof(TItem).GetProperty(property);
+                        if (prop == null) return false;
+                        var propValue = prop.GetValue(item)?.ToString()?.ToLower() ?? "";
+                        return propValue.Contains(value);
+                    });
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentSortColumn))
+            {
+                var property = typeof(TItem).GetProperty(currentSortColumn);
+                if (property != null)
+                {
+                    filtered = sortAscending 
+                        ? filtered.OrderBy(x => property.GetValue(x))
+                        : filtered.OrderByDescending(x => property.GetValue(x));
+                }
+            }
+
+            return filtered;
+        }
+    }
+
+    private IEnumerable<TItem>? PaginatedItems
+    {
+        get
+        {
+            if (FilteredItems == null) return null;
+            return FilteredItems.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
+        }
+    }
+
+    private int TotalItems => FilteredItems?.Count() ?? 0;
+    private int TotalPages => (int)Math.Ceiling((double)TotalItems / PageSize);
+
+    private void OnSort(string columnProperty)
+    {
+        if (currentSortColumn == columnProperty)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            currentSortColumn = columnProperty;
+            sortAscending = true;
+        }
+        CurrentPage = 1;
+    }
+
+    private void OnColumnFilterChanged(string columnProperty, string filterValue)
+    {
+        if (string.IsNullOrWhiteSpace(filterValue))
+        {
+            columnFilters.Remove(columnProperty);
+        }
+        else
+        {
+            columnFilters[columnProperty] = filterValue;
+        }
+        CurrentPage = 1;
+    }
+
+    private void GoToPage(int pageNumber)
+    {
+        if (pageNumber >= 1 && pageNumber <= TotalPages)
+        {
+            CurrentPage = pageNumber;
+        }
+    }
+
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newSize))
+        {
+            PageSize = newSize;
+            CurrentPage = 1;
+        }
+    }
+
+    public class ColumnDefinition
+    {
+        public string Property { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,9 @@
+html,
+body {
+  height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
+  background: linear-gradient(180deg, #ffffff 16%, #94c979 100%);
+}

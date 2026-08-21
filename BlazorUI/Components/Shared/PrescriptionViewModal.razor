@@ -1,0 +1,101 @@
+@* Phase 3: Shared prescription view modal - used by Dashboard and Appointments to show embedded prescriptions on an appointment. *@
+@using BlazorUI.Models.AppointmentModel
+
+@if (IsOpen && Appointment != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-medical me-2"></i>Prescription Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Patient:</strong> @($"{Appointment.Users?.FirstName} {Appointment.Users?.LastName}".Trim())</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <p class="mb-1"><strong>Date:</strong> @FormatAppointmentDate(Appointment)</p>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(Appointment.Diagnosis))
+                        {
+                            <p class="mt-2 mb-0"><strong>Diagnosis:</strong> @Appointment.Diagnosis</p>
+                        }
+                    </div>
+
+                    @if (Appointment.Prescriptions == null || Appointment.Prescriptions.Count == 0)
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-clipboard-x fs-1"></i>
+                            <p class="mt-2 mb-0">No prescription recorded for this appointment yet.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Medicine</th>
+                                        <th>Dosage</th>
+                                        <th>Frequency</th>
+                                        <th>Duration</th>
+                                        <th>Instructions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Appointment.Prescriptions)
+                                    {
+                                        <tr>
+                                            <td><strong>@p.MedicineName</strong></td>
+                                            <td>@p.Dosage</td>
+                                            <td>@p.Frequency</td>
+                                            <td>@p.Duration</td>
+                                            <td>@p.Instructions</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Close">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public AppointmentModelDtos? Appointment { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private async Task Close()
+    {
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    private static string FormatAppointmentDate(AppointmentModelDtos appt)
+    {
+        var d = appt.SlotStartTime ?? appt.AppointmentDate;
+        DateTime local = d.Kind switch
+        {
+            DateTimeKind.Utc => d.ToLocalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(d, DateTimeKind.Utc).ToLocalTime(),
+            _ => d
+        };
+        return local.ToString("dd MMM yyyy, hh:mm tt");
+    }
+}

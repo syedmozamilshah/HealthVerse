@@ -1,0 +1,140 @@
+@rendermode InteractiveServer
+@page "/login"
+@using AdminDashboard.Components.Layout
+@using AdminDashboard.Services
+@using System.ComponentModel.DataAnnotations
+@layout LoginLayout
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject IJSRuntime JS
+
+<PageTitle>Admin Login - HealthVerse</PageTitle>
+
+<div class="login-container">
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <i class="bi bi-heart-pulse-fill text-primary" style="font-size: 3rem;"></i>
+                <h3 class="fw-bold mt-3">HealthVerse Admin</h3>
+                <p class="text-muted">Sign in to access admin panel</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-circle me-2"></i>@errorMessage
+                </div>
+            }
+
+            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
+                <DataAnnotationsValidator />
+                
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="Enter email" />
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Email)" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <InputText @bind-Value="loginModel.Password"
+                                   type="@passwordType"
+                                   class="form-control" 
+                                   placeholder="Enter password" />
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Password)" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <span>Sign In</span>
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 1rem;
+    }
+
+    .login-container .card {
+        max-width: 420px;
+        width: 100%;
+        border-radius: 16px;
+        animation: slideUp 0.5s ease-out forwards;
+    }
+</style>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel loginModel { get; set; } = new();
+    
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+    private bool showPassword = false;
+
+    private string passwordType => showPassword ? "text" : "password";
+    private string passwordIcon => showPassword ? "bi bi-eye" : "bi bi-eye-slash";
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        var (success, message) = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+
+        if (success)
+        {
+            try
+            {
+                // Set cookies from browser so httpOnly cookies are created by server endpoint
+                await JS.InvokeVoidAsync("authCookies.setAdminSession", AuthService.Token, AuthService.RefreshToken, AuthService.TokenExpired, AuthService.RefreshExpired);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invoking cookie helper: {ex.Message}");
+            }
+
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            errorMessage = message;
+            isLoading = false;
+        }
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

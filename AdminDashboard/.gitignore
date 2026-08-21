@@ -1,0 +1,35 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio / VS Code
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.old
+*.orig
+*.swp
+
+# Local configuration / secrets
+appsettings.json
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# NuGet and other local caches
+*.nupkg
+
+# Optional publish artifacts
+publish/

@@ -1,0 +1,33 @@
+@page "/logout"
+@using BlazorUI.Authentication
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JsRuntime
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedSessionStorage SessionStorage
+
+@* M-1 REMOVING ALL THE COOKIES AND OTHER THINGS *@
+
+@code{
+    protected override async Task OnInitializedAsync(){
+        try
+        {
+            // Properly await the async JS function to ensure cookies are cleared
+            await JsRuntime.InvokeAsync<object>("authCookies.clearDoctorSession");
+            await SessionStorage.DeleteAsync("authToken");
+            await SessionStorage.DeleteAsync("currentUser");
+            await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsLoggedOut();
+            Console.WriteLine("[Logout] User logged out successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Logout] Error during logout: {ex.Message}");
+            // Continue with logout even if there are errors
+            await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsLoggedOut();
+        }
+        finally
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

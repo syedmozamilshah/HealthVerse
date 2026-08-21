@@ -1,0 +1,57 @@
+@* M-9 USED FOR DISPLAYING MODAL DIALOG *@
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable @SizeClass">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @ChildContent
+                </div>
+                @if (FooterTemplate != null)
+                {
+                    <div class="modal-footer">
+                        @FooterTemplate
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Size { get; set; } = "md"; // sm, md, lg, xl
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? FooterTemplate { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string SizeClass => Size switch
+    {
+        "sm" => "modal-sm",
+        "lg" => "modal-lg",
+        "xl" => "modal-xl",
+        _ => ""
+    };
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await OnClose.InvokeAsync();
+    }
+}

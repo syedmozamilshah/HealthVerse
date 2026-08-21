@@ -1,0 +1,246 @@
+@rendermode InteractiveServer
+@page "/logs"
+@using AdminDashboard.Services
+@inject ApiService ApiService
+
+<PageTitle>System Logs - HealthVerse Admin</PageTitle>
+
+<div class="logs-page">
+    <div class="mb-4">
+        <h1 class="h3 fw-bold text-dark mb-2">System Logs & Monitoring</h1>
+        <p class="text-muted">Detailed log of all system activities and authentication attempts</p>
+    </div>
+    
+    <!-- Health Status Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-semibold text-dark mb-0">CPU Usage</h6>
+                        <i class="bi bi-cpu text-primary fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0">@systemMetrics.CpuUsage.ToString("F1")<span class="fs-5 text-muted">%</span></h3>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: @(systemMetrics.CpuUsage)%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-semibold text-dark mb-0">Memory Usage</h6>
+                        <i class="bi bi-memory text-info fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0">@systemMetrics.MemoryUsage.ToString("F1")<span class="fs-5 text-muted">%</span></h3>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: @(systemMetrics.MemoryUsage)%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-semibold text-dark mb-0">Active Threads</h6>
+                        <i class="bi bi-diagram-3 text-success fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0">@systemMetrics.ActiveThreads</h3>
+                    <p class="text-muted small mb-0 mt-2">Processing requests</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-semibold text-dark mb-0">Response Time</h6>
+                        <i class="bi bi-speedometer2 text-warning fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0">@systemMetrics.AvgResponseTime.ToString("F0")<span class="fs-5 text-muted">ms</span></h3>
+                    <p class="text-muted small mb-0 mt-2">Average latency</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Section -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-semibold">Activity Logs</h5>
+                <span class="badge bg-primary">@logs.Count Total Logs</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Search logs by action, user, or IP address..."
+                                   @bind="searchQuery"
+                                   @bind:event="oninput">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" @bind="statusFilter">
+                            <option value="">All Logs</option>
+                            <option value="success">Success Only</option>
+                            <option value="error">Errors Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="fw-semibold text-muted small text-uppercase">Time</th>
+                            <th class="fw-semibold text-muted small text-uppercase">User</th>
+                            <th class="fw-semibold text-muted small text-uppercase">Action</th>
+                            <th class="fw-semibold text-muted small text-uppercase">Status</th>
+                            <th class="fw-semibold text-muted small text-uppercase">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in GetFilteredLogs())
+                        {
+                            <tr>
+                                <td>
+                                    <span class="font-monospace text-muted small">@log.Timestamp</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi @GetUserIcon(log.User) @GetUserIconColor(log.User)"></i>
+                                        <span class="font-monospace small">@log.User</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fw-medium">@log.Action</span>
+                                </td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(log.Status)">
+                                        <i class="bi @GetStatusIcon(log.Status) me-1"></i>
+                                        @log.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="font-monospace text-muted small">@log.IpAddress</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string searchQuery = string.Empty;
+    private string statusFilter = string.Empty;
+    private ServerMetrics systemMetrics = new();
+    private List<ActivityLog> logs = new();
+    private System.Timers.Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        StartAutoRefresh();
+    }
+
+    // M-9 USED FOR LOADING LOG DATA BY CALLING APIS
+    private async Task LoadData()
+    {
+        var metricsTask = ApiService.GetAsync<ApiResponse<ServerMetrics>>("/api/admin/Metrics");
+        var logsTask = ApiService.GetAsync<ApiResponse<List<ActivityLog>>>("/api/admin/Logs");
+
+        await Task.WhenAll(metricsTask, logsTask);
+
+        if (metricsTask.Result?.IsSuccess == true && metricsTask.Result.Data != null)
+            systemMetrics = metricsTask.Result.Data;
+
+        if (logsTask.Result?.IsSuccess == true && logsTask.Result.Data != null)
+            logs = logsTask.Result.Data;
+    }
+
+    private void StartAutoRefresh()
+    {
+        _timer = new System.Timers.Timer(60000);
+        _timer.Elapsed += async (s, e) => await InvokeAsync(async () =>
+        {
+            await LoadData();
+            StateHasChanged();
+        });
+        _timer.Start();
+    }
+
+    public void Dispose()
+    {
+        _timer?.Stop();
+        _timer?.Dispose();
+    }
+
+    private IEnumerable<ActivityLog> GetFilteredLogs()
+    {
+        IEnumerable<ActivityLog> filtered = logs;
+
+        // Status filter
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            filtered = filtered.Where(l => 
+                l.Status.Equals(statusFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filtered = filtered.Where(l => 
+                l.Action.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                l.User.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                l.IpAddress.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return filtered;
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "success" => "bg-success",
+        "failed" or "error" => "bg-danger",
+        "warning" => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+
+    private string GetStatusIcon(string status) => status switch
+    {
+        "success" => "bi-check-circle-fill",
+        "failed" or "error" => "bi-x-circle-fill",
+        "warning" => "bi-exclamation-triangle-fill",
+        _ => "bi-info-circle-fill"
+    };
+
+    private string GetUserIcon(string user) => user == "system" 
+        ? "bi-robot" 
+        : user.Contains("admin") 
+            ? "bi-shield-fill-check" 
+            : "bi-person-circle";
+
+    private string GetUserIconColor(string user) => user == "system" 
+        ? "text-info" 
+        : user.Contains("admin") 
+            ? "text-primary" 
+            : "text-secondary";
+}

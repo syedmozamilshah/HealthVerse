@@ -1,0 +1,472 @@
+@rendermode InteractiveServer
+
+@page "/finance"
+@using AdminDashboard.Services
+@inject ApiService ApiService
+
+
+
+<div class="finance-page">
+    <h1 class="h3 fw-bold text-dark mb-4">Finance & Subscriptions</h1>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "plans" ? "active" : "")" @onclick='() => SetActiveTab("plans")'>
+                        Subscription Plans
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "failed" ? "active" : "")" @onclick='() => SetActiveTab("failed")'>
+                        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                        Failed Payments
+                        @if (failedPaymentDoctors.Count > 0)
+                        {
+                            <span class="badge bg-danger ms-1">@failedPaymentDoctors.Count</span>
+                        }
+                    </button>
+                </li>
+                <!-- <li class="nav-item">
+                    <button class="nav-link @(activeTab == "statistics" ? "active" : "")" @onclick='() => SetActiveTab("statistics")'>
+                        <i class="bi bi-bar-chart me-1"></i>
+                        Doctor Statistics
+                    </button>
+                </li> -->
+            </ul>
+        </div>
+        <div class="card-body">
+            @if (activeTab == "plans")
+            {
+                <div class="row g-4">
+                    <!-- Doctor Monthly Plan -->
+                    <div class="col-12 col-md-4">
+                        <div class="card h-100 position-relative" style="border: 2px solid #198754;">
+                            <span class="position-absolute top-0 start-50 translate-middle badge" style="background-color: #198754;">
+                                Active Plan
+                            </span>
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold" style="color: #198754;">Doctor Monthly</h5>
+                                <div class="display-5 fw-bold text-dark my-3">
+                                    Rs. 2000<small class="fs-6 text-muted">/mo</small>
+                                </div>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle-fill me-2" style="color: #198754;"></i>AI-Powered Diagnostics
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle-fill me-2" style="color: #198754;"></i>Unlimited Patient Management
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle-fill me-2" style="color: #198754;"></i>Smart Prescriptions
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle-fill me-2" style="color: #198754;"></i>Priority Support
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Revenue Summary -->
+                    <div class="col-12 col-md-8">
+                        <div class="card h-100 border">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold">Revenue Summary</h5>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 text-center" style="background-color: rgba(25, 135, 84, 0.1);">
+                                            <div class="h2 fw-bold mb-0" style="color: #198754;">@activeDoctorCount</div>
+                                            <small class="text-muted">Active Subscriptions</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-warning-subtle rounded-3 text-center">
+                                            <div class="h2 fw-bold text-warning mb-0">@failedPaymentDoctors.Count</div>
+                                            <small class="text-muted">Failed Payments</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 rounded-3 text-center" style="background-color: rgba(25, 135, 84, 0.1);">
+                                            <div class="h2 fw-bold mb-0" style="color: #198754;">Rs. @(activeDoctorCount * 2000)</div>
+                                            <small class="text-muted">Est. Monthly Revenue</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (activeTab == "failed")
+            {
+                @if (isLoadingFailed)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border" style="color: #198754;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading failed payments...</p>
+                    </div>
+                }
+                else if (failedPaymentDoctors.Count == 0)
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-check-circle" style="font-size: 4rem; color: #198754;"></i>
+                        <h5 class="mt-3">All payments are up to date!</h5>
+                        <p class="text-muted">There are no doctors with failed payments.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Doctor</th>
+                                    <th>Specialization</th>
+                                    <th>Status</th>
+                                    <th>Last Payment</th>
+                                    <th>Failed Date</th>
+                                    <th>Patients</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var doctor in failedPaymentDoctors)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2">
+                                                    @(doctor.DoctorName?.FirstOrDefault().ToString().ToUpper() ?? "D")
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">@doctor.DoctorName</div>
+                                                    <small class="text-muted">@doctor.Email</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@doctor.Specialization</td>
+                                        <td>
+                                            <span class="badge @GetSubscriptionBadgeClass(doctor.SubscriptionStatus)">
+                                                @doctor.SubscriptionStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (doctor.LastPaymentDate.HasValue)
+                                            {
+                                                @doctor.LastPaymentDate.Value.ToDisplayString("MMM dd, yyyy")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Never</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (doctor.PaymentFailedDate.HasValue)
+                                            {
+                                                <span class="text-danger">@doctor.PaymentFailedDate.Value.ToDisplayString("MMM dd, yyyy")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info-subtle text-info">@doctor.TotalPatients patients</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+            @* else if (activeTab == "statistics")
+            {
+                @if (isLoadingStatistics)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border" style="color: #198754;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading doctor statistics...</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Doctor</th>
+                                    <th>Specialization</th>
+                                    <th>Total Patients</th>
+                                    <th>Appointments</th>
+                                    <th>Prescriptions</th>
+                                    <th>Subscription</th>
+                                    <th>Est. Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var doctor in doctorStatistics)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-2">
+                                                    @(doctor.DoctorName?.FirstOrDefault().ToString().ToUpper() ?? "D")
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">@doctor.DoctorName</div>
+                                                    <small class="text-muted">@doctor.Email</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@doctor.Specialization</td>
+                                        <td>
+                                            <span class="badge" style="background-color: rgba(25, 135, 84, 0.1); color: #198754;">@doctor.TotalPatients</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge" style="background-color: rgba(25, 135, 84, 0.1); color: #198754;">@doctor.TotalAppointments</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info-subtle text-info">@doctor.TotalPrescriptions</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetSubscriptionBadgeClass(doctor.SubscriptionStatus)">
+                                                @doctor.SubscriptionStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold" style="color: #198754;">
+                                                PKR @((doctor.ConsultationFee * doctor.TotalAppointments).ToString("N0"))
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="row g-3 mt-4">
+                        <div class="col-md-3">
+                            <div class="card border-0" style="background-color: rgba(25, 135, 84, 0.1);">
+                                <div class="card-body text-center">
+                                    <div class="h3 fw-bold mb-0" style="color: #198754;">@doctorStatistics.Sum(d => d.TotalPatients)</div>
+                                    <small class="text-muted">Total Patients</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0" style="background-color: rgba(25, 135, 84, 0.1);">
+                                <div class="card-body text-center">
+                                    <div class="h3 fw-bold mb-0" style="color: #198754;">@doctorStatistics.Sum(d => d.TotalAppointments)</div>
+                                    <small class="text-muted">Total Appointments</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 bg-info-subtle">
+                                <div class="card-body text-center">
+                                    <div class="h3 fw-bold text-info mb-0">@doctorStatistics.Sum(d => d.TotalPrescriptions)</div>
+                                    <small class="text-muted">Total Prescriptions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 bg-warning-subtle">
+                                <div class="card-body text-center">
+                                    <div class="h3 fw-bold text-warning mb-0">@doctorStatistics.Count(d => d.SubscriptionStatus == "active")</div>
+                                    <small class="text-muted">Active Doctors</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            } *@
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #198754, #34C759);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .bg-primary-subtle { background-color: rgba(25, 135, 84, 0.1) !important; }
+    .bg-success-subtle { background-color: rgba(25, 135, 84, 0.1) !important; }
+    .bg-info-subtle { background-color: rgba(13, 202, 240, 0.1) !important; }
+    .bg-warning-subtle { background-color: rgba(255, 193, 7, 0.1) !important; }
+    
+    .text-primary { color: #198754 !important; }
+    .text-success { color: #198754 !important; }
+    .text-info { color: #0dcaf0 !important; }
+    .text-warning { color: #ffc107 !important; }
+</style>
+
+@code {
+    private string activeTab = "plans";
+    private bool isLoadingFailed = false;
+    private bool isLoadingStatistics = false;
+    private int activeDoctorCount = 0;
+    private List<DoctorPaymentStatusDto> failedPaymentDoctors = new();
+    private List<DoctorStatisticsDto> doctorStatistics = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    // M-9 USED FOR SHOWING THE FINANCIAL DATA
+    private async Task SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        if (tab == "failed" && failedPaymentDoctors.Count == 0)
+        {
+            await LoadFailedPayments();
+        }
+        /* else if (tab == "statistics" && doctorStatistics.Count == 0)
+        {
+            await LoadDoctorStatistics();
+        } */
+    }
+
+    private async Task LoadData()
+    {
+        await Task.WhenAll(
+            LoadFailedPayments(),
+            LoadActiveDoctorCount()
+        );
+    }
+
+    private async Task LoadActiveDoctorCount()
+    {
+        try
+        {
+            var response = await ApiService.GetAsync<DoctorStatisticsResponse>("/api/Stripe/admin/doctor-statistics");
+            if (response?.IsSuccess == true && response.Data != null)
+            {
+                activeDoctorCount = response.Data.Count(d => 
+                    d.SubscriptionStatus == "active" || 
+                    (d.SubscriptionStatus == "canceled" && d.SubscriptionEndDate > DateTime.UtcNow));
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading active doctor count: {ex.Message}");
+        }
+    }
+
+    private async Task LoadFailedPayments()
+    {
+        try
+        {
+            isLoadingFailed = true;
+            StateHasChanged();
+
+            var response = await ApiService.GetAsync<FailedPaymentsResponse>("/api/Stripe/admin/failed-payments");
+            if (response?.IsSuccess == true)
+            {
+                failedPaymentDoctors = response.Data ?? new List<DoctorPaymentStatusDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading failed payments: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingFailed = false;
+            StateHasChanged();
+        }
+    }
+
+    /* private async Task LoadDoctorStatistics()
+    {
+        try
+        {
+            isLoadingStatistics = true;
+            StateHasChanged();
+
+            var response = await ApiService.GetAsync<DoctorStatisticsResponse>("/api/Stripe/admin/doctor-statistics");
+            if (response?.IsSuccess == true)
+            {
+                doctorStatistics = response.Data ?? new List<DoctorStatisticsDto>();
+                activeDoctorCount = doctorStatistics.Count(d => d.SubscriptionStatus == "active");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading doctor statistics: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingStatistics = false;
+            StateHasChanged();
+        }
+    } */
+
+    private string GetSubscriptionBadgeClass(string? status)
+    {
+        return status switch
+        {
+            "active" => "bg-success",
+            "past_due" => "bg-warning text-dark",
+            "unpaid" => "bg-danger",
+            "canceled" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    // DTOs
+    public class FailedPaymentsResponse
+    {
+        public bool IsSuccess { get; set; }
+        public List<DoctorPaymentStatusDto>? Data { get; set; }
+    }
+
+    public class DoctorStatisticsResponse
+    {
+        public bool IsSuccess { get; set; }
+        public List<DoctorStatisticsDto>? Data { get; set; }
+    }
+
+    public class DoctorPaymentStatusDto
+    {
+        public string DoctorId { get; set; } = "";
+        public string DoctorName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Specialization { get; set; } = "";
+        public string SubscriptionStatus { get; set; } = "";
+        public DateTime? LastPaymentDate { get; set; }
+        public DateTime? PaymentFailedDate { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
+        public int TotalPatients { get; set; }
+        public int TotalAppointments { get; set; }
+    }
+
+    public class DoctorStatisticsDto
+    {
+        public string DoctorId { get; set; } = "";
+        public string DoctorName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Specialization { get; set; } = "";
+        public int TotalPatients { get; set; }
+        public int TotalAppointments { get; set; }
+        public int TotalPrescriptions { get; set; }
+        public string SubscriptionStatus { get; set; } = "";
+        public decimal ConsultationFee { get; set; }
+        public bool IsVerified { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
+    }
+}
