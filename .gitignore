@@ -4,15 +4,16 @@
 *.log
 *.user
 *.suo
-*.sqlite3
 
-# .NET / C# / Blazor
-bin/
-obj/
-TestResults/
-*.dll
-*.exe
-*.pdb
+# .NET / C# / Blazor - Build outputs
+**/bin/
+**/obj/
+**/TestResults/
+**/*.dll
+**/*.exe
+**/*.pdb
+
+# .NET config (sensitive)
 appsettings.json
 appsettings.*.json
 
@@ -21,7 +22,7 @@ appsettings.*.json
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
-build/
+**/build/
 windows/flutter/ephemeral/
 linux/flutter/ephemeral/
 macos/Flutter/ephemeral/
