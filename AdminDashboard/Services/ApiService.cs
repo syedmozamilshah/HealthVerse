@@ -14,7 +14,7 @@ namespace AdminDashboard.Services
         public ApiService(IHttpClientFactory httpClientFactory, IConfiguration configuration, AuthService authService)
         {
             _httpClientFactory = httpClientFactory;
-            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5257";
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://healthverse-ubdt.onrender.com";
             _authService = authService;
         }
 

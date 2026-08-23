@@ -24,7 +24,7 @@ namespace AdminDashboard.Services
         public AuthService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
-            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5257";
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://healthverse-ubdt.onrender.com";
         }
 
         public bool IsAuthenticated => _isAuthenticated;
