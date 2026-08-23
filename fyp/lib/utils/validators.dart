@@ -335,8 +335,7 @@ class Validators {
       return 'Address is too long (max 150 characters).';
     }
 
-    // 3. Ensure it contains at least one number and some letters
-    final hasNumber = RegExp(r'[0-9]').hasMatch(address);
+    // 3. Ensure it contains letters
     final hasLetters = RegExp(r'[a-zA-Z]').hasMatch(address);
 
     if (!hasLetters) {

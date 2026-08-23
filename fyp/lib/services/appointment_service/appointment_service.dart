@@ -83,6 +83,7 @@ class AppointmentService {
 
   /// Get active medications from recent appointments
   Future<List<ActiveMedication>> getActiveMedications() async {
+    // ignore: unused_local_variable
     final now = PakistanTimeHelper.nowPakistan();
     final response = await getMyAppointments();
     if (!response.isSuccess) return [];

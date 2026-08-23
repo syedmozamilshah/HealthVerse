@@ -36,10 +36,13 @@ class _AppointmentSymptomsState extends State<AppointmentSymptoms>
   bool _isListening = false;
   String _selectedLocaleId = 'en_US'; // Default locale
   List<LocaleName> _availableLocales = [];
+  // ignore: unused_field
   String _lastRecognizedWords = ''; // Store last recognized words
   bool _isNewPatient = true;
+  // ignore: unused_field
   final AppointmentService _appointmentService = AppointmentService();
   late TabController _tabController;
+  // ignore: unused_field
   List<SavedPrescription> _prescriptions = [];
   final PrescriptionService _prescriptionService = PrescriptionService();
   

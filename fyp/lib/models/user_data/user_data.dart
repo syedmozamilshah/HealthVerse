@@ -52,7 +52,7 @@ class UserData {
         imageUrl: imageUrl ?? this.imageUrl,
         address: address ?? this.address,
         bloodGroup: bloodGroup ?? this.bloodGroup,
-        profileType: patientType ?? this.profileType);
+        profileType: patientType ?? profileType);
   }
 
   factory UserData.fromJson(Map<String, dynamic> json) {
