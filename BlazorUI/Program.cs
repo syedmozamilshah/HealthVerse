@@ -25,7 +25,7 @@ builder.Services.AddSignalR(options =>
 builder.Services.AddHttpClient("API", client =>
 {
     var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"]
-        ?? "https://fyp-apis-bhe7cjbscyehccff.centralindia-01.azurewebsites.net";
+        ?? "https://healthverse-ubdt.onrender.com";
 
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });

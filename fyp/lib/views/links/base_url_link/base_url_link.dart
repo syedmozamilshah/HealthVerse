@@ -30,6 +30,6 @@
 
 // CURRENT ACTIVE CONFIGURATION (web mode):
 // ignore: constant_identifier_names
-const base_url = 'http://localhost:5257';
+const base_url = 'https://healthverse-ubdt.onrender.com';
 // ignore: constant_identifier_names
-const ai_base_url = 'http://localhost:8001';
+const ai_base_url = 'https://healthverse-agent.azurewebsites.net';

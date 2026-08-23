@@ -44,7 +44,7 @@ namespace BlazorUI.Services
                 client.DefaultRequestHeaders.Authorization = 
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 
-                var baseUrl = _configuration["ApiSettings:BlazorBaseUrl"] ?? "http://localhost:5180";
+                var baseUrl = _configuration["ApiSettings:BlazorBaseUrl"] ?? "https://healthverse-admin.azurewebsites.net";
                 
                 var request = new
                 {
