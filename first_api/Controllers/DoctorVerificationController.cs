@@ -289,8 +289,8 @@ namespace first_api.Controllers
 
                 // Validate required documents
                 var missingDocs = new List<string>();
-                if (string.IsNullOrEmpty(doctor.CnicFrontImage)) missingDocs.Add("CNIC Front");
-                if (string.IsNullOrEmpty(doctor.CnicBackImage)) missingDocs.Add("CNIC Back");
+                // if (string.IsNullOrEmpty(doctor.CnicFrontImage)) missingDocs.Add("CNIC Front");
+                // if (string.IsNullOrEmpty(doctor.CnicBackImage)) missingDocs.Add("CNIC Back");
                 if (string.IsNullOrEmpty(doctor.MbbsImage)) missingDocs.Add("MBBS Degree");
                 if (string.IsNullOrEmpty(doctor.LicenseImage)) missingDocs.Add("PMDC License");
                 if (string.IsNullOrEmpty(doctor.LicenceNumber)) missingDocs.Add("License Number");

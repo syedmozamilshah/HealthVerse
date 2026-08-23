@@ -791,7 +791,8 @@
                                     <i class="bi bi-file-earmark-image text-success me-2"></i>Verification Documents
                                 </h6>
                                 
-                                <!-- CNIC Documents -->
+                                <!-- CNIC Documents (REMOVED) -->
+                                @* 
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label fw-medium">CNIC Front *</label>
@@ -834,6 +835,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                *@
 
                                 <!-- Degree Documents -->
                                 <div class="row g-3 mb-3">
@@ -2131,8 +2133,8 @@
 
             // Validate required fields
             var missingFields = new List<string>();
-            if (string.IsNullOrEmpty(verificationForm.CnicFrontImage)) missingFields.Add("CNIC Front");
-            if (string.IsNullOrEmpty(verificationForm.CnicBackImage)) missingFields.Add("CNIC Back");
+            // if (string.IsNullOrEmpty(verificationForm.CnicFrontImage)) missingFields.Add("CNIC Front");
+            // if (string.IsNullOrEmpty(verificationForm.CnicBackImage)) missingFields.Add("CNIC Back");
             if (string.IsNullOrEmpty(verificationForm.MbbsImage)) missingFields.Add("MBBS Degree");
             if (string.IsNullOrEmpty(verificationForm.LicenseImage)) missingFields.Add("PMDC License");
             if (string.IsNullOrEmpty(verificationForm.LicenceNumber)) missingFields.Add("License Number");
@@ -2144,10 +2146,10 @@
                 return;
             }
 
-            if (!await ValidateCnicWithWebhook())
-            {
-                return;
-            }
+            // if (!await ValidateCnicWithWebhook())
+            // {
+            //     return;
+            // }
 
             var client = await ApiClient.SetAuthorizedHeader();
             var content = new MultipartFormDataContent();

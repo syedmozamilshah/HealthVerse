@@ -16,28 +16,33 @@ namespace first_api.Data
     {
         private readonly HttpClient _httpClient;
 
-        // AI Agent endpoints based on specialty
+        // AI Agent endpoints — Unified Python LangGraph Specialist Agents
+        // All 4 specialists now run on the new HealthVerse Doctor Agents service
+        // Local dev: http://localhost:8001 | Production: set DOCTOR_AGENTS_URL env variable
+        private static readonly string DoctorAgentsBaseUrl =
+            System.Environment.GetEnvironmentVariable("DOCTOR_AGENTS_URL") ?? "http://localhost:8001";
+
         private static readonly Dictionary<string, AgentConfig> AgentEndpoints = new(StringComparer.OrdinalIgnoreCase)
         {
             ["optician"] = new AgentConfig
             {
-                Endpoint = "https://syedmozamilshah99--optician-mistral7b-fastapi-wrapper.modal.run/chat",
+                Endpoint = $"{DoctorAgentsBaseUrl}/chat/optician",
                 RequestFormat = AgentRequestFormat.MessagesArray
             },
             ["optometrist"] = new AgentConfig
             {
-                Endpoint = "https://n8n-14pv.onrender.com/webhook/bfe8ce06-352c-43af-b817-e6b887b0ad45",
-                RequestFormat = AgentRequestFormat.N8nWebhook
+                Endpoint = $"{DoctorAgentsBaseUrl}/chat/optometrist",
+                RequestFormat = AgentRequestFormat.MessagesArray
             },
             ["ocularist"] = new AgentConfig
             {
-                Endpoint = "https://syedmozamilshah99--ocularist-llama-fastapi-wrapper.modal.run/chat",
-                RequestFormat = AgentRequestFormat.SimpleMessage
+                Endpoint = $"{DoctorAgentsBaseUrl}/chat/ocularist",
+                RequestFormat = AgentRequestFormat.MessagesArray
             },
             ["ophthalmologist"] = new AgentConfig
             {
-                Endpoint = "https://n8n-14pv.onrender.com/webhook/891d762b-10e7-4169-a4b6-d528927107f6",
-                RequestFormat = AgentRequestFormat.N8nWebhook
+                Endpoint = $"{DoctorAgentsBaseUrl}/chat/ophthalmologist",
+                RequestFormat = AgentRequestFormat.MessagesArray
             }
         };
 
