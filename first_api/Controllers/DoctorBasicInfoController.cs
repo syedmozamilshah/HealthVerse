@@ -181,8 +181,8 @@ namespace first_api.Controllers
                                 ImageUrl = doc.ImageUrl,
                                 Specialization = doc.Specialization,
                                 ClinicLocation = doc.ClinicInfo.Location,
-                                MorningStartTime = doc.AvailableTimeMorning.StartTime.ToString("HH:mm"),
-                                MorningEndTime = doc.AvailableTimeMorning.EndTime.ToString("HH:mm"),
+                                MorningStartTime = doc.AvailableTimeMorning?.StartTime.ToString("HH:mm") ?? "",
+                                MorningEndTime = doc.AvailableTimeMorning?.EndTime.ToString("HH:mm") ?? "",
                                 DailyAvailabilities = doc.DailyAvailabilities ?? new List<DayAvailability>()
                             }).ToList();
 

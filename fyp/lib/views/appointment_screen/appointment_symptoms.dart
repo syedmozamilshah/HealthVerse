@@ -1334,6 +1334,7 @@ void _syncTabControllerLength() {
                               builder: (context) => MCQScreen(
                                 questionModel: questionModel,
                                 symptomQuestionService: _symptomQuestionService,
+                                isNewPatient: _isNewPatient,
                               ),
                             ),
                           );

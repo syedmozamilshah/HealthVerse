@@ -9,11 +9,13 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 class MCQScreen extends StatefulWidget {
   final QuestionModel questionModel;
   final SymptomQuestionService symptomQuestionService;
+  final bool isNewPatient;
 
   const MCQScreen({
     super.key,
     required this.questionModel,
     required this.symptomQuestionService,
+    this.isNewPatient = false,
   });
 
   @override
@@ -120,7 +122,7 @@ class _MCQScreenState extends State<MCQScreen> {
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
-                        const DoctorViewScreen(speciality: 'Optometrist')));
+                        DoctorViewScreen(speciality: widget.isNewPatient ? 'Ophthalmologist' : 'Optometrist')));
           }
         }
       } else {
