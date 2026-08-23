@@ -666,13 +666,20 @@ namespace first_api.Controllers
     </div>
 </div>", isHtml: true).SendAsync();
                 Console.WriteLine($"email sent to {user.Email}");
-                var update = Builders<User>.Update.Set(u => u.PasswordHash, _jwtService.HashPassword(password));
+
+                // ✅ Update password AND mark email as verified so user can login immediately
+                var update = Builders<User>.Update
+                    .Set(u => u.PasswordHash, _jwtService.HashPassword(password))
+                    .Set(u => u.IsEmailVerified, true);
                 await _users.UpdateOneAsync(u => u.Id == user.Id, update);
+
+                // ✅ Delete any pending email verification tokens so login is not blocked
+                await _tokens.DeleteManyAsync(t => t.UserId == user.Id);
+
                 response.IsSuccess = true;
                 response.Message = "Password reset link sent to your email.";
 
-
-                return StatusCode(200,response);
+                return StatusCode(200, response);
             }
             catch (Exception ex)
             {

@@ -272,7 +272,32 @@ void showAppPopup(BuildContext context, String message, {PopupType? type, VoidCa
 PopupType _inferPopupType(String message) {
   final lowerMessage = message.toLowerCase();
   
-  // Success indicators
+  // ✅ Error indicators — check FIRST before success (some errors contain "sent")
+  if (lowerMessage.contains('not verified') ||
+      lowerMessage.contains('no account') ||
+      lowerMessage.contains('please register') ||
+      lowerMessage.contains('incorrect') ||
+      lowerMessage.contains('banned') ||
+      lowerMessage.contains('suspended') ||
+      lowerMessage.contains('error') ||
+      lowerMessage.contains('failed') ||
+      lowerMessage.contains('invalid') ||
+      lowerMessage.contains('cannot') ||
+      lowerMessage.contains('unable') ||
+      lowerMessage.contains('not found') ||
+      lowerMessage.contains('unauthorized') ||
+      lowerMessage.contains('wrong')) {
+    return PopupType.error;
+  }
+
+  // ℹ️ Verification / info messages
+  if (lowerMessage.contains('verification link') ||
+      lowerMessage.contains('check your inbox') ||
+      lowerMessage.contains('verify')) {
+    return PopupType.info;
+  }
+
+  // ✅ Success indicators
   if (lowerMessage.contains('success') ||
       lowerMessage.contains('confirmed') ||
       lowerMessage.contains('saved') ||
@@ -283,18 +308,7 @@ PopupType _inferPopupType(String message) {
     return PopupType.success;
   }
   
-  // Error indicators
-  if (lowerMessage.contains('error') ||
-      lowerMessage.contains('failed') ||
-      lowerMessage.contains('invalid') ||
-      lowerMessage.contains('cannot') ||
-      lowerMessage.contains('unable') ||
-      lowerMessage.contains('not found') ||
-      lowerMessage.contains('unauthorized')) {
-    return PopupType.error;
-  }
-  
-  // Warning indicators
+  // ⚠️ Warning indicators
   if (lowerMessage.contains('please') ||
       lowerMessage.contains('must') ||
       lowerMessage.contains('required') ||
