@@ -75,9 +75,6 @@ Remember: You're here to be helpful, fun, and supportive while keeping eyes heal
                     return StatusCode(500, new { IsSuccess = false, Message = "API keys not configured." });
                 }
 
-                // Pick the first key
-                string apiKey = apiKeys.First();
-
                 // Build Gemini Request Payload
                 var requestBody = new
                 {
@@ -116,34 +113,47 @@ Remember: You're here to be helpful, fun, and supportive while keeping eyes heal
                 var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response = null;
-                for (int attempt = 1; attempt <= MaxRetries; attempt++)
+                foreach (var apiKey in apiKeys)
                 {
-                    response = await _httpClient.PostAsync($"{BaseUrl}/{PrimaryModel}:generateContent?key={apiKey}", jsonContent);
-                    if (response.StatusCode != System.Net.HttpStatusCode.ServiceUnavailable)
+                    for (int attempt = 1; attempt <= MaxRetries; attempt++)
                     {
-                        break;
+                        response = await _httpClient.PostAsync($"{BaseUrl}/{PrimaryModel}:generateContent?key={apiKey}", jsonContent);
+                        
+                        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden || response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                        {
+                            // API Key might be invalid or leaked, break out of retries and try next key
+                            Console.WriteLine($"Gemini API Key failed with status {response.StatusCode}. Trying next key...");
+                            break; 
+                        }
+                        
+                        if (response.StatusCode != System.Net.HttpStatusCode.ServiceUnavailable)
+                        {
+                            break;
+                        }
+                        Console.WriteLine($"Gemini 503 (attempt {attempt}/{MaxRetries}) - retrying...");
+                        await Task.Delay(1000 * (1 << (attempt - 1))); // Exponential backoff
                     }
-                    Console.WriteLine($"Gemini 503 (attempt {attempt}/{MaxRetries}) - retrying...");
-                    await Task.Delay(1000 * (1 << (attempt - 1))); // Exponential backoff
-                }
-
-                if (response != null && response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    // Fallback model
-                    Console.WriteLine($"Falling back to {FallbackModel}...");
-                    response = await _httpClient.PostAsync($"{BaseUrl}/{FallbackModel}:generateContent?key={apiKey}", jsonContent);
-                }
-
-                if (response != null && response.IsSuccessStatusCode)
-                {
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    using var doc = JsonDocument.Parse(responseString);
-                    var candidates = doc.RootElement.GetProperty("candidates");
-                    if (candidates.GetArrayLength() > 0)
+                    
+                    if (response != null && response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                     {
-                        var text = candidates[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
-                        return Ok(new { IsSuccess = true, Message = text });
+                        // Fallback model
+                        Console.WriteLine($"Falling back to {FallbackModel}...");
+                        response = await _httpClient.PostAsync($"{BaseUrl}/{FallbackModel}:generateContent?key={apiKey}", jsonContent);
                     }
+
+                    if (response != null && response.IsSuccessStatusCode)
+                    {
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(responseString);
+                        var candidates = doc.RootElement.GetProperty("candidates");
+                        if (candidates.GetArrayLength() > 0)
+                        {
+                            var text = candidates[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+                            return Ok(new { IsSuccess = true, Message = text });
+                        }
+                    }
+                    
+                    // If we get here, this key failed to get a success response, let loop continue to next key
                 }
                 
                 var errorBody = response != null ? await response.Content.ReadAsStringAsync() : "No response";
