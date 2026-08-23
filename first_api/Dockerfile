@@ -21,5 +21,5 @@ COPY --from=build /app/publish .
 
 EXPOSE 80
 
-# Use Render's provided $PORT at runtime
-CMD ["bash", "-lc", "dotnet first_api.dll --urls http://0.0.0.0:$PORT"]
+# Use Render's provided $PORT at runtime by executing via sh instead of bash -lc
+CMD dotnet first_api.dll --urls http://0.0.0.0:$PORT
