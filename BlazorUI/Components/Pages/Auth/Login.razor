@@ -269,34 +269,45 @@
                     
                     var errorMessage = errorResult?.Message ?? "Invalid email or password";
                     
-                    // Show specific, clear error messages based on what went wrong
-                    if (errorMessage.Contains("Incorrect password") || errorMessage.Contains("password"))
+                    // ✅ Show specific, clear error messages based on what went wrong
+                    if (errorMessage.Contains("No account found") || errorMessage.Contains("Please register"))
                     {
-                        await ToastComponent!.ShowDangerToast("Wrong Password", "The password you entered is incorrect. Please try again.");
+                        // User is NOT registered at all
+                        await ToastComponent!.ShowDangerToast("Account Not Found", 
+                            "No account exists with this email. Please Sign Up first to create an account.");
+                    }
+                    else if (errorMessage.Contains("Incorrect password") || errorMessage.Contains("forgot"))
+                    {
+                        // Registered user but wrong password
+                        await ToastComponent!.ShowDangerToast("Wrong Password", 
+                            "The password you entered is incorrect. Click 'Reset Password' if you forgot it.");
                     }
                     else if (errorMessage.Contains("email is not verified") && errorMessage.Contains("new verification link"))
                     {
-                        await ToastComponent!.ShowInfoToast("Verification Email Sent", "Your email is not verified. We just sent a new verification link to your inbox. Please check it!");
+                        // Email not verified - new link was just sent
+                        await ToastComponent!.ShowInfoToast("Verification Email Sent", 
+                            "Your email is not verified. We just sent a new link to your inbox. Please verify and try again.");
                     }
                     else if (errorMessage.Contains("email is not verified"))
                     {
-                        await ToastComponent!.ShowInfoToast("Email Not Verified", "Please check your inbox for the verification link we sent earlier.");
+                        // Email not verified - link already pending
+                        await ToastComponent!.ShowInfoToast("Email Not Verified", 
+                            "Please check your inbox for the verification link we sent earlier.");
                     }
                     else if (errorMessage.Contains("profile not matched"))
                     {
-                        await ToastComponent!.ShowDangerToast("Wrong Account Type", "This account is not registered as a doctor. Please use the patient app.");
+                        await ToastComponent!.ShowDangerToast("Wrong Account Type", 
+                            "This account is not registered as a doctor. Please use the patient mobile app.");
                     }
                     else if (errorMessage.Contains("banned"))
                     {
-                        await ToastComponent!.ShowDangerToast("Account Banned", "Your account has been banned. Please contact support.");
+                        await ToastComponent!.ShowDangerToast("Account Banned", 
+                            "Your account has been banned. Please contact support.");
                     }
                     else if (errorMessage.Contains("suspended"))
                     {
-                        await ToastComponent!.ShowDangerToast("Account Suspended", "Your account is suspended. Please contact support.");
-                    }
-                    else if (errorMessage.Contains("Invalid email"))
-                    {
-                        await ToastComponent!.ShowDangerToast("Login Failed", "No account found with this email address.");
+                        await ToastComponent!.ShowDangerToast("Account Suspended", 
+                            "Your account is suspended. Please contact support.");
                     }
                     else
                     {

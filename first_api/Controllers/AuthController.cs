@@ -477,8 +477,8 @@ namespace first_api.Controllers
                 if (user == null)
                 {
                     response.IsSuccess = false;
-                    response.Message = "Invalid email or password";
-                    Console.WriteLine("user null");
+                    response.Message = "No account found with this email address. Please register first.";
+                    Console.WriteLine("user null - not registered");
                     return BadRequest(response);
                 }
 
@@ -489,7 +489,7 @@ namespace first_api.Controllers
                 {
                     Console.WriteLine("Wrong password entered");
                     response.IsSuccess = false;
-                    response.Message = "Incorrect password. Please try again.";
+                    response.Message = "Incorrect password. Please try again. If you forgot it, use the Reset Password option.";
                     return StatusCode(401, response);
                 }
 
