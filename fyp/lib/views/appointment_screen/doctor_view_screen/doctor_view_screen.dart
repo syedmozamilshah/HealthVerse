@@ -14,7 +14,7 @@ import 'package:fyp/provider/state_notifier_provider/user_provider.dart';
 
 class DoctorViewScreen extends ConsumerStatefulWidget {
   final String speciality;
-  const DoctorViewScreen({super.key, this.speciality = 'Optometrist'});
+  const DoctorViewScreen({super.key, this.speciality = 'Ophthalmologist'});
 
   @override
   ConsumerState<DoctorViewScreen> createState() => _DoctorViewScreenState();
