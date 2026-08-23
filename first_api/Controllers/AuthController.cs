@@ -479,11 +479,45 @@ namespace first_api.Controllers
                     response.IsSuccess = false;
                     response.Message = "Invalid email or password";
                     Console.WriteLine("user null");
-
                     return BadRequest(response);
                 }
-                
+
                 Console.WriteLine($"Found user: {user.Id}");
+
+                // ✅ STEP 1: Check password FIRST before anything else
+                if (!_jwtService.VerifyPassword(request.Password, user.PasswordHash))
+                {
+                    Console.WriteLine("Wrong password entered");
+                    response.IsSuccess = false;
+                    response.Message = "Incorrect password. Please try again.";
+                    return StatusCode(401, response);
+                }
+
+                // ✅ STEP 2: Check profile type match
+                Console.WriteLine(user.ProfileType);
+                if (user.ProfileType != request.ProfileType)
+                {
+                    response.IsSuccess = false;
+                    response.Message = "Invalid credentials or unverified account profile not matched.";
+                    return StatusCode(404, response);
+                }
+
+                // ✅ STEP 3: Check account status
+                var acctStatus = (user.AccountStatus ?? (user.IsEmailVerified ? "Active" : "Pending")).ToLowerInvariant();
+                if (acctStatus == "banned")
+                {
+                    response.IsSuccess = false;
+                    response.Message = "Your account has been banned. Please contact support if you believe this is a mistake.";
+                    return BadRequest(response);
+                }
+                if (acctStatus == "suspended")
+                {
+                    response.IsSuccess = false;
+                    response.Message = "Your account is suspended. Please contact support for assistance.";
+                    return BadRequest(response);
+                }
+
+                // ✅ STEP 4: Now check email verification (password was correct)
                 var userToken = await _tokens.Find(t => t.UserId == user.Id).FirstOrDefaultAsync();
 
                 if (!user.IsEmailVerified && userToken == null)
@@ -507,13 +541,11 @@ namespace first_api.Controllers
                         values: new { token = verificationToken.Id }
                     );
 
-
                     var emailBody = GetVerificationEmailTemplate(user.FirstName, verificationLink ?? "");
                     await _fluentEmail.To(user.Email).Subject("✉️ Verify Your Email - HealthVerse").Body(emailBody, isHtml: true).SendAsync();
                     Console.WriteLine($"email sent to {user.Email}");
                     response.IsSuccess = false;
                     response.Message = "Your email is not verified! A new verification link has been sent to your email. Please check your inbox and verify to continue.";
-
 
                     return BadRequest(response);
                 }
@@ -522,45 +554,10 @@ namespace first_api.Controllers
                     if (!user.IsEmailVerified && userToken != null)
                     {
                         response.IsSuccess = false;
-                        response.Message = "Your email is not verified! Please check your inbox for the verification link we sent earlier. The link expires in 2 minutes.";
+                        response.Message = "Your email is not verified! Please check your inbox for the verification link we sent earlier. The link expires in 10 minutes.";
 
                         return BadRequest(response);
                     }
-                }
-                Console.WriteLine(user.ProfileType);
-
-
-                if (user.ProfileType != request.ProfileType)
-                {
-                    response.IsSuccess = false;
-                    response.Message = "Invalid credentials or unverified account profile not matched.";
-
-                    return StatusCode(404, response);
-                }
-
-                // Check account status and prevent login if banned or suspended
-                var acctStatus = (user.AccountStatus ?? (user.IsEmailVerified ? "Active" : "Pending")).ToLowerInvariant();
-                if (acctStatus == "banned")
-                {
-                    response.IsSuccess = false;
-                    response.Message = "Your account has been banned. Please contact support if you believe this is a mistake.";
-                    return BadRequest(response);
-                }
-                if (acctStatus == "suspended")
-                {
-                    response.IsSuccess = false;
-                    response.Message = "Your account is suspended. Please contact support for assistance.";
-                    return BadRequest(response);
-                }
-
-
-                if (!_jwtService.VerifyPassword(request.Password, user.PasswordHash))
-                {
-                    Console.WriteLine("In dangerous area");
-                    response.IsSuccess = false;
-                    response.Message = "Invalid credentials or unverified account password.";
-
-                    return StatusCode(401, response);
                 }
 
                 var token = _jwtService.GenerateToken(user, false);

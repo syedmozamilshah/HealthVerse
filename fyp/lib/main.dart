@@ -147,10 +147,12 @@ class _MyAppState extends ConsumerState<MyApp> {
               color: tealColor,
             ),
             pageTransitionsTheme: const PageTransitionsTheme(
-              builders: {
+              builders: <TargetPlatform, PageTransitionsBuilder>{
                 TargetPlatform.android: ZoomPageTransitionsBuilder(),
-                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
                 TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+                TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
+                TargetPlatform.linux: ZoomPageTransitionsBuilder(),
               },
             ),
           ),

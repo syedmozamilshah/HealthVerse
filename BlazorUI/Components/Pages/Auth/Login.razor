@@ -269,18 +269,34 @@
                     
                     var errorMessage = errorResult?.Message ?? "Invalid email or password";
                     
-                    // Show specific error messages
-                    if (errorMessage.Contains("email is not verified"))
+                    // Show specific, clear error messages based on what went wrong
+                    if (errorMessage.Contains("Incorrect password") || errorMessage.Contains("password"))
                     {
-                        await ToastComponent!.ShowInfoToast("Email Not Verified", errorMessage);
+                        await ToastComponent!.ShowDangerToast("Wrong Password", "The password you entered is incorrect. Please try again.");
+                    }
+                    else if (errorMessage.Contains("email is not verified") && errorMessage.Contains("new verification link"))
+                    {
+                        await ToastComponent!.ShowInfoToast("Verification Email Sent", "Your email is not verified. We just sent a new verification link to your inbox. Please check it!");
+                    }
+                    else if (errorMessage.Contains("email is not verified"))
+                    {
+                        await ToastComponent!.ShowInfoToast("Email Not Verified", "Please check your inbox for the verification link we sent earlier.");
                     }
                     else if (errorMessage.Contains("profile not matched"))
                     {
-                        await ToastComponent!.ShowDangerToast("Wrong Profile Type", "This account is not registered as a doctor. Please use the patient app.");
+                        await ToastComponent!.ShowDangerToast("Wrong Account Type", "This account is not registered as a doctor. Please use the patient app.");
                     }
-                    else if (errorMessage.Contains("password"))
+                    else if (errorMessage.Contains("banned"))
                     {
-                        await ToastComponent!.ShowDangerToast("Login Failed", "Invalid password. Please try again.");
+                        await ToastComponent!.ShowDangerToast("Account Banned", "Your account has been banned. Please contact support.");
+                    }
+                    else if (errorMessage.Contains("suspended"))
+                    {
+                        await ToastComponent!.ShowDangerToast("Account Suspended", "Your account is suspended. Please contact support.");
+                    }
+                    else if (errorMessage.Contains("Invalid email"))
+                    {
+                        await ToastComponent!.ShowDangerToast("Login Failed", "No account found with this email address.");
                     }
                     else
                     {

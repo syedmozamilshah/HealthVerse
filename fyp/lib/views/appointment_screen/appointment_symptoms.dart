@@ -366,16 +366,7 @@ void _syncTabControllerLength() {
     });
   }
 
-                  color: tealColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+
 
   void _showServiceErrorDialog(bool isWeb, String? errorMessage) {
     if (!mounted) return;

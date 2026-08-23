@@ -459,6 +459,8 @@
 
     private async Task SendRequest()
     {
+        if (isVisible) return; // Prevent double submission
+        
         try
         {
             // Client-side validations
