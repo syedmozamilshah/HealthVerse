@@ -19,5 +19,9 @@ COPY --from=build /app/publish .
 
 EXPOSE 80
 
+# Disable FileSystemWatcher to prevent inotify limit crashes on Render
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+
 # Bind to Render's provided PORT at runtime
-CMD ["bash", "-lc", "dotnet BlazorUI.dll --urls http://0.0.0.0:$PORT"]
+CMD dotnet BlazorUI.dll --urls http://0.0.0.0:$PORT
