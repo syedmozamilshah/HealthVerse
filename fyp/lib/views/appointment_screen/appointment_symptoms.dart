@@ -366,47 +366,6 @@ void _syncTabControllerLength() {
     });
   }
 
-  void _showInvalidSymptomsDialog(bool isWeb) {
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.visibility_off,
-                  color: Colors.orange, size: isWeb ? 28 : 24.sp),
-              SizedBox(width: isWeb ? 12 : 2.w),
-              Expanded(
-                child: Text(
-                  'Invalid Symptoms',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Please enter eye-related symptoms only.\n\nFor example:\n• I have blurry vision\n• My eyes are red and itchy\n• I have pain in my eyes\n\nThis system is designed specifically for eye and vision problems.',
-            style: TextStyle(
-              fontSize: isWeb ? 16 : 15.sp,
-              height: 1.5,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _symptomsController.clear();
-              },
-              child: Text(
-                'Try Again',
-                style: TextStyle(
                   color: tealColor,
                   fontWeight: FontWeight.bold,
                 ),

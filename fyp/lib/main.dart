@@ -146,6 +146,13 @@ class _MyAppState extends ConsumerState<MyApp> {
             progressIndicatorTheme: const ProgressIndicatorThemeData(
               color: tealColor,
             ),
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: ZoomPageTransitionsBuilder(),
+                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+              },
+            ),
           ),
           home: currentHome,
         );

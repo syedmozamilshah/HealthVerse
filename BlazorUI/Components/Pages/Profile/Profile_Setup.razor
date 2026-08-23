@@ -1232,17 +1232,17 @@
                 }
                 else
                 {
-                    await ToastComponent!.ShowErrorToast("Error", result?.Message ?? "Failed to create checkout session");
+                    ToastComponent?.ShowDangerToast("Error", result?.Message ?? "Failed to create checkout session");
                 }
             }
             else
             {
-                await ToastComponent!.ShowErrorToast("Error", "Failed to create checkout session");
+                ToastComponent?.ShowDangerToast("Error", "Failed to create checkout session");
             }
         }
         catch (Exception ex)
         {
-            await ToastComponent!.ShowErrorToast("Error", $"Error: {ex.Message}");
+            ToastComponent?.ShowDangerToast("Error", $"Error: {ex.Message}");
         }
         finally
         {

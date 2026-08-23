@@ -6,4 +6,38 @@ body {
   padding: 0 !important;
   overflow-x: hidden;
   background: linear-gradient(180deg, #ffffff 16%, #94c979 100%);
+  scroll-behavior: smooth;
+}
+
+/* Global Smoothness and Animation Effects */
+* {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Glassmorphism Cards */
+.card, .modal-content, .rz-card, .rz-dialog {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
+}
+
+/* Creative Hover Effects on Buttons and Cards */
+.btn:hover, button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.25) !important;
+}
+
+/* Creative Input Focus Effects */
+input:focus, textarea:focus, select:focus {
+    box-shadow: 0 0 10px rgba(148, 201, 121, 0.5) !important;
+    border-color: #94c979 !important;
+    transform: scale(1.01);
 }

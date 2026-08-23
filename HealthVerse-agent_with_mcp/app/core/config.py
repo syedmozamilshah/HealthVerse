@@ -31,7 +31,12 @@ class Settings(BaseSettings):
     MCQS_PER_ITERATION: int = int(os.getenv("MCQS_PER_ITERATION", "1"))
     MCQ_OPTIONS_COUNT: int = int(os.getenv("MCQ_OPTIONS_COUNT", "4"))
     
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_API_KEY_2: str = os.getenv("GEMINI_API_KEY_2", "")
+    GEMINI_REASONING_MODEL: str = os.getenv("GEMINI_REASONING_MODEL", "")
+    
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
