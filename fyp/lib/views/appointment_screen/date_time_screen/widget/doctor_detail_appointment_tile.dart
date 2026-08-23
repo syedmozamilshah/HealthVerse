@@ -185,27 +185,47 @@ class _DoctorDetailAppointmentScreenState
               ],
             ),
             SizedBox(height: 4.h),
-            DateSlot(
-              availableDates: currentUser.dailyAvailabilities
-                  .map((availability) => availability.date)
-                  .where((date) {
-                // Filter out past dates - only show today and future dates
-                final pakNow = PakistanTimeHelper.nowPakistan();
-                final todayDateOnly =
-                    DateTime(pakNow.year, pakNow.month, pakNow.day);
-                final pakDate = PakistanTimeHelper.toPakistanTime(date);
-                final dateOnly =
-                    DateTime(pakDate.year, pakDate.month, pakDate.day);
-                return dateOnly.isAtSameMomentAs(todayDateOnly) ||
-                    dateOnly.isAfter(todayDateOnly);
-              }).toList(),
-              onDateSelection: (date) {
-                setState(() {
-                  selectedDate = date;
-                  selectedSlot = null; // Reset slot when date changes
-                });
-                print('Selected Date: $date');
-              },
+            Builder(
+              builder: (context) {
+                final availableFutureDates = currentUser.dailyAvailabilities
+                    .map((availability) => availability.date)
+                    .where((date) {
+                  final pakNow = PakistanTimeHelper.nowPakistan();
+                  final todayDateOnly =
+                      DateTime(pakNow.year, pakNow.month, pakNow.day);
+                  final pakDate = PakistanTimeHelper.toPakistanTime(date);
+                  final dateOnly =
+                      DateTime(pakDate.year, pakDate.month, pakDate.day);
+                  return dateOnly.isAtSameMomentAs(todayDateOnly) ||
+                      dateOnly.isAfter(todayDateOnly);
+                }).toList();
+
+                if (availableFutureDates.isEmpty) {
+                  return Container(
+                    padding: EdgeInsets.symmetric(vertical: 2.h),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "No upcoming dates available for this doctor.",
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: Colors.red[400],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }
+
+                return DateSlot(
+                  availableDates: availableFutureDates,
+                  onDateSelection: (date) {
+                    setState(() {
+                      selectedDate = date;
+                      selectedSlot = null; // Reset slot when date changes
+                    });
+                    print('Selected Date: $date');
+                  },
+                );
+              }
             ),
             SizedBox(height: 4.w),
             Row(
@@ -235,16 +255,19 @@ class _DoctorDetailAppointmentScreenState
             SizedBox(height: 4.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.location_on_outlined, color: tealColor, size: 20.sp),
                 SizedBox(width: 2.w),
-                Text(
-                  currentUser.clinicLocation.isNotEmpty
-                      ? currentUser.clinicLocation
-                      : "Clinic Location Not Available",
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    color: Colors.grey[700],
+                Expanded(
+                  child: Text(
+                    currentUser.clinicLocation.isNotEmpty
+                        ? currentUser.clinicLocation
+                        : "Clinic Location Not Available",
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      color: Colors.grey[700],
+                    ),
                   ),
                 ),
               ],
