@@ -11,7 +11,7 @@ GROQ_BASE_URL: str = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"
 GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
-API_PORT: int = int(os.getenv("API_PORT", "8001"))
+API_PORT: int = int(os.getenv("PORT", os.getenv("API_PORT", "8001")))
 API_RELOAD: bool = os.getenv("API_RELOAD", "true").lower() == "true"
 
 ALLOWED_ORIGINS: list[str] = os.getenv(
