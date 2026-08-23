@@ -3,6 +3,7 @@ services:
   - type: web
     name: healthverse-agent-mcp
     env: python
+    plan: free
     rootDir: HealthVerse-agent_with_mcp
     buildCommand: pip install -r requirements.txt
     startCommand: bash startup.sh
@@ -14,6 +15,7 @@ services:
   - type: web
     name: healthverse-doctor-agents
     env: python
+    plan: free
     rootDir: HealthVerse-doctor-agents
     buildCommand: pip install -r requirements.txt
     startCommand: bash startup.sh
