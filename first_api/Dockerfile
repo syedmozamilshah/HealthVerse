@@ -21,5 +21,9 @@ COPY --from=build /app/publish .
 
 EXPOSE 80
 
+# Disable FileSystemWatcher to prevent inotify limit crashes on Render
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+
 # Use Render's provided $PORT at runtime by executing via sh instead of bash -lc
 CMD dotnet first_api.dll --urls http://0.0.0.0:$PORT
