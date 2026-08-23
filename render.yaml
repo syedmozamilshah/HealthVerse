@@ -1,0 +1,22 @@
+services:
+  # Main Agent (MCP + FastAPI)
+  - type: web
+    name: healthverse-agent-mcp
+    env: python
+    rootDir: HealthVerse-agent_with_mcp
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash startup.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  # Doctor Agents (FastAPI)
+  - type: web
+    name: healthverse-doctor-agents
+    env: python
+    rootDir: HealthVerse-doctor-agents
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash startup.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
