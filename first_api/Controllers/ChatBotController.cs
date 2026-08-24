@@ -10,8 +10,8 @@ namespace first_api.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
-        private const string PrimaryModel = "gemini-1.5-flash";
-        private const string FallbackModel = "gemini-1.5-flash-8b";
+        private const string PrimaryModel = "gemini-2.5-flash";
+        private const string FallbackModel = "gemini-2.5-flash-lite";
         private const string BaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
         private const int MaxRetries = 3;
 
