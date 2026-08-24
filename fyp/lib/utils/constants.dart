@@ -18,11 +18,9 @@ class ApiEndpoints {
   // Run these commands once when phone is connected:
   //   adb reverse tcp:5257 tcp:5257
   //   adb reverse tcp:8000 tcp:8000
-  static const String baseUrl = 'http://192.168.18.34:5257';
+  static const String baseUrl = 'https://healthverse-ubdt.onrender.com';
   static const String aiBaseUrl = 'https://healthverse-agent-mcp.onrender.com';
   static const String doctorAgentBaseUrl = 'https://healthverse-doctor-agents.onrender.com';
-  // static const String baseUrl = 'https://fyp-backend-czoq.onrender.com';
-  // static const String aiBaseUrl = 'https://fyp-backend-czoq.onrender.com';
 
   // Auth endpoints
   static const String login = '/api/Auth/login';
