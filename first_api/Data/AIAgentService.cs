@@ -18,9 +18,9 @@ namespace first_api.Data
 
         // AI Agent endpoints — Unified Python LangGraph Specialist Agents
         // All 4 specialists now run on the new HealthVerse Doctor Agents service
-        // Local dev: http://localhost:8001 | Production: set DOCTOR_AGENTS_URL env variable
-        private static readonly string DoctorAgentsBaseUrl =
-            System.Environment.GetEnvironmentVariable("DOCTOR_AGENTS_URL") ?? "http://localhost:8001";
+        // Local dev fallback updated to Render URL
+        private static readonly string DoctorAgentsBaseUrl = 
+            System.Environment.GetEnvironmentVariable("DOCTOR_AGENTS_URL") ?? "https://healthverse-doctor-agents.onrender.com";
 
         private static readonly Dictionary<string, AgentConfig> AgentEndpoints = new(StringComparer.OrdinalIgnoreCase)
         {
