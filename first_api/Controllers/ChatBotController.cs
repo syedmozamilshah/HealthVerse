@@ -69,7 +69,13 @@ Remember: You're here to be helpful, fun, and supportive while keeping eyes heal
         {
             try
             {
-                var apiKeys = _configuration.GetSection("Gemini:ApiKeys").Get<List<string>>();
+                var apiKeys = _configuration.GetSection("Gemini:ApiKeys").Get<List<string>>() ?? new List<string>();
+                var envKey = System.Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+                if (!string.IsNullOrEmpty(envKey))
+                {
+                    apiKeys.Add(envKey);
+                }
+
                 if (apiKeys == null || !apiKeys.Any())
                 {
                     return StatusCode(500, new { IsSuccess = false, Message = "API keys not configured." });
