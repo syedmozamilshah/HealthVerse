@@ -32,6 +32,6 @@
 // ignore: constant_identifier_names
 const base_url = 'https://healthverse-ubdt.onrender.com';
 // ignore: constant_identifier_names
-const ai_base_url = 'https://healthverse-agent-cmhuecg2avg4hfds.southeastasia-01.azurewebsites.net';
+const ai_base_url = 'https://healthverse-agent-mcp.onrender.com';
 // ignore: constant_identifier_names
-const doctor_agent_base_url = 'https://healthverse-doctor.azurewebsites.net';
+const doctor_agent_base_url = 'https://healthverse-doctor-agents.onrender.com';
